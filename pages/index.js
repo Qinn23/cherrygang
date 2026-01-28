@@ -269,195 +269,326 @@ export default function Home() {
 
   return (
     <div
-      className={`${geistSans.className} ${geistMono.className} min-h-screen bg-gradient-to-b from-amber-50 via-orange-50 to-emerald-50 font-sans text-zinc-900`}
+      className={`${geistSans.className} ${geistMono.className} min-h-screen bg-slate-100 text-slate-900`}
     >
-      <header className="border-b border-amber-200/60 bg-white/70 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-6 px-6 py-6">
-          <div>
-            <p className="text-sm font-medium text-zinc-700">
-              Smart Pantry
-            </p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight">
-              Dashboard
-            </h1>
+      <div className="flex min-h-screen">
+        {/* Sidebar */}
+        <aside className="hidden w-64 flex-shrink-0 border-r border-slate-200 bg-white/80 px-5 py-6 lg:flex lg:flex-col">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-500 text-sm font-semibold text-white">
+              SP
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                Smart Pantry
+              </p>
+              <p className="text-sm font-semibold text-slate-900">Household</p>
+            </div>
           </div>
 
-          <div className="hidden items-center gap-3 sm:flex">
-            <div className="rounded-full bg-emerald-500/15 px-3 py-1 text-sm font-medium text-emerald-900 ring-1 ring-inset ring-emerald-500/20">
-              {expiringSoon.length} expiring soon
-            </div>
-            <div className="rounded-full bg-amber-500/15 px-3 py-1 text-sm font-medium text-amber-900 ring-1 ring-inset ring-amber-500/20">
-              {ingredients.length} items tracked
-            </div>
+          <nav className="mt-8 space-y-1 text-sm">
+            <p className="px-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Overview
+            </p>
+            <Link
+              href="/"
+              className="mt-1 flex items-center justify-between rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white"
+            >
+              <span>Dashboard</span>
+            </Link>
+            <Link
+              href="/ai-chat"
+              className="mt-1 flex items-center justify-between rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
+            >
+              <span>AI assistant</span>
+            </Link>
+
+            <p className="mt-6 px-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Pantry
+            </p>
+            <Link
+              href="/add-food"
+              className="mt-1 flex items-center justify-between rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
+            >
+              <span>Add food</span>
+            </Link>
+            <Link
+              href="/recipes"
+              className="flex items-center justify-between rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
+            >
+              <span>Recipes</span>
+            </Link>
+            <Link
+              href="/ai-recipes"
+              className="flex items-center justify-between rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
+            >
+              <span>AI recipe generator</span>
+            </Link>
+
+            <p className="mt-6 px-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+              People & tips
+            </p>
             <Link
               href="/profiles"
-              className="rounded-full bg-white/70 px-4 py-2 text-sm font-semibold text-zinc-800 ring-1 ring-inset ring-amber-200/70 hover:bg-white"
+              className="mt-1 flex items-center justify-between rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
             >
-              Profiles
+              <span>Family profiles</span>
             </Link>
+            <Link
+              href="/community"
+              className="flex items-center justify-between rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
+            >
+              <span>Community life hacks</span>
+            </Link>
+            <Link
+              href="/fertilizer"
+              className="flex items-center justify-between rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-100"
+            >
+              <span>Fertilizer tips</span>
+            </Link>
+          </nav>
+
+          <div className="mt-auto pt-8 text-xs text-slate-400">
+            <p>Food waste dashboard prototype</p>
           </div>
-        </div>
-      </header>
+        </aside>
 
-      <main className="mx-auto max-w-6xl px-6 py-8">
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <DashboardStatCard
-            title="Ingredients expiring"
-            value={`${expiringSoon.length + expired.length}`}
-            subtext={`${expired.length} expired • next ${Math.min(
-              expiringWindowDays,
-              7
-            )} days`}
-            accent={expired.length ? "rose" : "amber"}
-            icon={iconClock()}
-          />
-          <DashboardStatCard
-            title="Suggested recipes"
-            value={`${recipes.length}`}
-            subtext="Based on what you have + what expires soon"
-            accent="sky"
-            icon={iconSpark()}
-          />
-          <DashboardStatCard
-            title="Food saved"
-            value={`${foodSavedKg.toFixed(1)} kg`}
-            subtext="Saved from waste this month (estimate)"
-            accent="emerald"
-            icon={iconJar()}
-          />
-          <DashboardStatCard
-            title="CO₂ reduced"
-            value={`${co2ReducedKg.toFixed(1)} kg`}
-            subtext="Avoided emissions from prevented waste"
-            accent="emerald"
-            icon={iconLeaf()}
-          />
-        </section>
-
-        <section className="mt-6 grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2">
-            <div className="mb-6">
-              <DinerSelector />
-            </div>
-
-            <div className="flex items-end justify-between gap-4">
-              <h2 className="text-base font-semibold tracking-tight text-zinc-900">
-                Suggested recipes
-              </h2>
-              <p className="text-sm text-zinc-700">
-                Prioritizing items expiring soon
-              </p>
-            </div>
-
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              {filteredRecipes.map((r) => (
-                <RecipeCard key={r.id} recipe={r} />
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            <AlertsPanel alerts={alerts} />
-
-            <section className="rounded-2xl border border-amber-200/60 bg-white/80 p-5 shadow-sm ring-1 ring-inset ring-white/50 backdrop-blur">
-              <div className="flex items-center justify-between gap-4">
-                <h2 className="text-base font-semibold tracking-tight text-zinc-900">
-                  Gemini recommendations (preview)
-                </h2>
-                <button
-                  type="button"
-                  onClick={runAiPreview}
-                  disabled={aiLoading}
-                  className="rounded-full bg-sky-500/15 px-3 py-1 text-sm font-semibold text-sky-900 ring-1 ring-inset ring-sky-500/20 hover:bg-sky-500/20 disabled:opacity-60"
-                >
-                  {aiLoading ? "Thinking…" : "Generate"}
-                </button>
+        {/* Main column */}
+        <div className="flex-1">
+          {/* Top bar */}
+          <header className="border-b border-slate-200 bg-white/70 backdrop-blur">
+            <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">
+                  Dashboard
+                </p>
+                <h1 className="mt-1 text-xl font-semibold tracking-tight text-slate-900">
+                  Today in your kitchen
+                </h1>
+                <p className="mt-1 text-xs text-slate-500">
+                  See what&apos;s expiring, what to cook, and how your household is reducing waste.
+                </p>
               </div>
 
-              <p className="mt-1 text-sm text-zinc-700">
-                This is a stub now. Later we’ll swap this to a real Gemini API
-                call.
-              </p>
-
-              <div className="mt-4 space-y-2">
-                {!aiPreview ? (
-                  <div className="rounded-xl border border-dashed border-amber-200/70 bg-white/60 p-4 text-sm text-zinc-700">
-                    Click “Generate” to see how diner selection affects AI
-                    suggestions.
-                  </div>
-                ) : (
-                  aiPreview.recommendations.map((r) => (
-                    <div
-                      key={r.id}
-                      className="rounded-xl border border-amber-200/60 bg-amber-50/60 p-4"
-                    >
-                      <p className="font-semibold text-zinc-900">{r.name}</p>
-                      <p className="mt-1 text-sm text-zinc-700">{r.reason}</p>
-                    </div>
-                  ))
-                )}
+              <div className="hidden items-center gap-3 sm:flex">
+                <div className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200">
+                  {expiringSoon.length} expiring soon
+                </div>
+                <div className="rounded-full bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700 ring-1 ring-inset ring-slate-200">
+                  {ingredients.length} items tracked
+                </div>
               </div>
+            </div>
+          </header>
+
+          {/* Page content */}
+          <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8 space-y-8">
+            {/* Top stats */}
+            <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <DashboardStatCard
+                title="Ingredients expiring"
+                value={`${expiringSoon.length + expired.length}`}
+                subtext={`${expired.length} expired • next ${Math.min(
+                  expiringWindowDays,
+                  7
+                )} days`}
+                accent={expired.length ? "rose" : "amber"}
+                icon={iconClock()}
+              />
+              <DashboardStatCard
+                title="Suggested recipes"
+                value={`${recipes.length}`}
+                subtext="Based on what you have + what expires soon"
+                accent="sky"
+                icon={iconSpark()}
+              />
+              <DashboardStatCard
+                title="Food saved"
+                value={`${foodSavedKg.toFixed(1)} kg`}
+                subtext="Saved from waste this month (estimate)"
+                accent="emerald"
+                icon={iconJar()}
+              />
+              <DashboardStatCard
+                title="CO₂ reduced"
+                value={`${co2ReducedKg.toFixed(1)} kg`}
+                subtext="Avoided emissions from prevented waste"
+                accent="emerald"
+                icon={iconLeaf()}
+              />
             </section>
 
-            <section className="rounded-2xl border border-amber-200/60 bg-white/80 p-5 shadow-sm ring-1 ring-inset ring-white/50 backdrop-blur">
-              <div className="flex items-center justify-between gap-4">
-                <h2 className="text-base font-semibold tracking-tight text-zinc-900">
-                  Expiring overview
-                </h2>
-                <span className="text-sm text-zinc-600">
-                  Next {expiringWindowDays} days
-                </span>
+            {/* Main grid */}
+            <section className="grid gap-6 lg:grid-cols-3">
+              {/* Left: diners + recipes */}
+              <div className="lg:col-span-2 space-y-6">
+                <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                  <div className="flex items-center justify-between gap-3">
+                    <h2 className="text-sm font-semibold tracking-tight text-slate-900">
+                      Who are we cooking for?
+                    </h2>
+                    <p className="text-xs text-slate-500">
+                      Family profiles adjust allergies and preferences automatically.
+                    </p>
+                  </div>
+                  <div className="mt-3">
+                    <DinerSelector />
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                  <div className="flex items-end justify-between gap-4">
+                    <div>
+                      <h2 className="text-sm font-semibold tracking-tight text-slate-900">
+                        Suggested recipes
+                      </h2>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Prioritizing ingredients that are expiring soon and your diners&apos; needs.
+                      </p>
+                    </div>
+                    <Link
+                      href="/recipes"
+                      className="hidden rounded-full bg-slate-900 px-3 py-1 text-xs font-semibold text-white hover:bg-slate-800 sm:inline-flex"
+                    >
+                      View all recipes
+                    </Link>
+                  </div>
+
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    {filteredRecipes.map((r) => (
+                      <RecipeCard key={r.id} recipe={r} />
+                    ))}
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-[11px] text-slate-500">
+                    <p>
+                      Recipes generated from your current pantry and what expires first.
+                    </p>
+                    <Link
+                      href="/ai-recipes"
+                      className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-3 py-1 font-medium text-emerald-700 ring-1 ring-inset ring-emerald-200 hover:bg-emerald-100"
+                    >
+                      Try AI recipe generator
+                    </Link>
+                  </div>
+                </div>
               </div>
 
-              <div className="mt-4 space-y-3">
-                {[...expired, ...expiringSoon].slice(0, 6).map((i) => {
-                  const isExpired = i.daysLeft < 0;
-                  const pill =
-                    isExpired
-                      ? "bg-rose-500/10 text-rose-900 ring-rose-500/20"
-                      : i.daysLeft === 0
-                        ? "bg-amber-500/15 text-amber-900 ring-amber-500/20"
-                        : "bg-emerald-500/15 text-emerald-900 ring-emerald-500/20";
+              {/* Right: alerts + AI + expiring list */}
+              <div className="space-y-6">
+                <div className="rounded-2xl border border-slate-200 bg-white p-5">
+                  <h2 className="text-sm font-semibold tracking-tight text-slate-900">
+                    Alerts
+                  </h2>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Expired items, urgent ingredients, and quick food-saving tips.
+                  </p>
+                  <div className="mt-4">
+                    <AlertsPanel alerts={alerts} />
+                  </div>
+                </div>
 
-                  const label =
-                    isExpired
-                      ? `expired ${Math.abs(i.daysLeft)}d ago`
-                      : i.daysLeft === 0
-                        ? "expires today"
-                        : `in ${i.daysLeft}d`;
-
-                  return (
-                    <div
-                      key={`${i.name}-${i.expiresOn}`}
-                      className="flex items-center justify-between gap-3 rounded-xl border border-amber-200/60 bg-amber-50/60 px-4 py-3"
+                <section className="rounded-2xl border border-slate-200 bg-white p-5">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <h2 className="text-sm font-semibold tracking-tight text-slate-900">
+                        Gemini recommendations (preview)
+                      </h2>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Soon this will generate tailored meal plans for your household.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={runAiPreview}
+                      disabled={aiLoading}
+                      className="rounded-full bg-sky-50 px-3 py-1 text-xs font-semibold text-sky-700 ring-1 ring-inset ring-sky-200 hover:bg-sky-100 disabled:opacity-60"
                     >
-                      <div className="min-w-0">
-                        <p className="truncate font-medium text-zinc-900">
-                          {i.name}
-                        </p>
-                        <p className="mt-0.5 text-sm text-zinc-700">
-                          {i.qty} • {i.category}
-                        </p>
+                      {aiLoading ? "Thinking…" : "Generate"}
+                    </button>
+                  </div>
+
+                  <div className="mt-4 space-y-2">
+                    {!aiPreview ? (
+                      <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 text-xs text-slate-500">
+                        Select diners, then click &quot;Generate&quot; to see how AI will adapt to
+                        your household.
                       </div>
-                      <span
-                        className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${pill}`}
-                      >
-                        {label}
-                      </span>
-                    </div>
-                  );
-                })}
-
-                {expired.length + expiringSoon.length === 0 ? (
-                  <div className="rounded-xl border border-dashed border-amber-200/70 bg-white/60 p-4 text-sm text-zinc-700">
-                    Nothing expiring soon. Nice work.
+                    ) : (
+                      aiPreview.recommendations.map((r) => (
+                        <div
+                          key={r.id}
+                          className="rounded-xl border border-slate-200 bg-slate-50 p-4"
+                        >
+                          <p className="text-sm font-semibold text-slate-900">{r.name}</p>
+                          <p className="mt-1 text-xs text-slate-600">{r.reason}</p>
+                        </div>
+                      ))
+                    )}
                   </div>
-                ) : null}
+                </section>
+
+                <section className="rounded-2xl border border-slate-200 bg-white p-5">
+                  <div className="flex items-center justify-between gap-4">
+                    <h2 className="text-sm font-semibold tracking-tight text-slate-900">
+                      Expiring overview
+                    </h2>
+                    <span className="text-xs text-slate-500">
+                      Next {expiringWindowDays} days
+                    </span>
+                  </div>
+
+                  <div className="mt-4 space-y-3">
+                    {[...expired, ...expiringSoon].slice(0, 6).map((i) => {
+                      const isExpired = i.daysLeft < 0;
+                      const pill =
+                        isExpired
+                          ? "bg-rose-50 text-rose-700 ring-rose-200"
+                          : i.daysLeft === 0
+                            ? "bg-amber-50 text-amber-700 ring-amber-200"
+                            : "bg-emerald-50 text-emerald-700 ring-emerald-200";
+
+                      const label =
+                        isExpired
+                          ? `expired ${Math.abs(i.daysLeft)}d ago`
+                          : i.daysLeft === 0
+                            ? "expires today"
+                            : `in ${i.daysLeft}d`;
+
+                      return (
+                        <div
+                          key={`${i.name}-${i.expiresOn}`}
+                          className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50 px-4 py-3"
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-slate-900">
+                              {i.name}
+                            </p>
+                            <p className="mt-0.5 text-xs text-slate-500">
+                              {i.qty} • {i.category}
+                            </p>
+                          </div>
+                          <span
+                            className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1 ring-inset ${pill}`}
+                          >
+                            {label}
+                          </span>
+                        </div>
+                      );
+                    })}
+
+                    {expired.length + expiringSoon.length === 0 ? (
+                      <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-4 text-xs text-slate-500">
+                        Nothing expiring soon. You&apos;re on top of things.
+                      </div>
+                    ) : null}
+                  </div>
+                </section>
               </div>
             </section>
-          </div>
-        </section>
-      </main>
+          </main>
+        </div>
+      </div>
     </div>
   );
 }
