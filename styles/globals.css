@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Kitchen-happy base palette */
+  --background: #fff7ed; /* amber-50-ish */
+  --foreground: #1f2937; /* slate-800-ish */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
@@ -11,8 +12,9 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* Keep it warm even in dark mode (avoid "all black") */
+    --background: #0f172a; /* slate-900 */
+    --foreground: #fff7ed; /* warm cream */
   }
 }
 
