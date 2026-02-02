@@ -7,53 +7,63 @@ export function DashboardStatCard({
 }) {
   const accentMap = {
     emerald: {
-      ring: "ring-emerald-500/15",
-      bg: "bg-emerald-500/12",
-      text: "text-emerald-800",
+      ring: "ring-macaron-mint",
+      bg: "bg-macaron-mint",
+      text: "text-macaron-mint-dark",
+      border: "border-macaron-mint",
+      gradient: "bg-gradient-macaron-mint",
     },
     amber: {
-      ring: "ring-amber-500/15",
-      bg: "bg-amber-500/12",
-      text: "text-amber-800",
+      ring: "ring-macaron-peach",
+      bg: "bg-macaron-peach",
+      text: "text-macaron-peach-dark",
+      border: "border-macaron-peach",
+      gradient: "bg-gradient-macaron-peach",
     },
     rose: {
-      ring: "ring-rose-500/15",
-      bg: "bg-rose-500/12",
-      text: "text-rose-800",
+      ring: "ring-macaron-pink",
+      bg: "bg-macaron-pink",
+      text: "text-macaron-pink-dark",
+      border: "border-macaron-pink",
+      gradient: "bg-gradient-macaron-pink",
     },
     sky: {
-      ring: "ring-sky-500/15",
-      bg: "bg-sky-500/12",
-      text: "text-sky-800",
+      ring: "ring-macaron-sky",
+      bg: "bg-macaron-sky",
+      text: "text-macaron-sky-dark",
+      border: "border-macaron-sky",
+      gradient: "bg-gradient-macaron-sky",
     },
     zinc: {
-      ring: "ring-zinc-500/15",
-      bg: "bg-zinc-500/12",
-      text: "text-zinc-700",
+      ring: "ring-macaron-lavender",
+      bg: "bg-macaron-lavender",
+      text: "text-macaron-lavender-dark",
+      border: "border-macaron-lavender",
+      gradient: "bg-gradient-macaron-lavender",
     },
   };
 
   const a = accentMap[accent] ?? accentMap.emerald;
 
   return (
-    <div className="rounded-2xl border border-amber-200/60 bg-white/80 p-5 shadow-sm ring-1 ring-inset ring-white/50 backdrop-blur">
+    <div className={`rounded-2xl border-2 ${a.border} bg-white/90 p-5 shadow-macaron-md ring-2 ring-inset ${a.ring}/20 backdrop-blur hover:shadow-macaron-lg transition-all`}>
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-sm font-medium text-zinc-700">
+          <p className="text-sm font-medium text-macaron-lavender-dark">
             {title}
           </p>
-          <p className="mt-2 truncate text-3xl font-semibold tracking-tight text-zinc-900">
+          <p className="mt-2 truncate text-3xl font-semibold tracking-tight text-macaron-pink-dark">
             {value}
           </p>
           {subtext ? (
-            <p className="mt-2 text-sm text-zinc-600">
+            <p className="mt-2 text-sm text-macaron-lavender-dark">
               {subtext}
             </p>
           ) : null}
         </div>
 
         <div
-          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${a.bg} ${a.text} ring-1 ring-inset ${a.ring}`}
+          className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${a.gradient} text-white ring-2 ring-inset ${a.ring}`}
           aria-hidden="true"
         >
           {icon}

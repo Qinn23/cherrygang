@@ -1,11 +1,29 @@
 @import "tailwindcss";
 
 :root {
-  /* Kitchen-happy base palette */
-  --background: #fff7ed;
-  --foreground: #1f2937;
+  /* Macaron Pastel Colors */
+  --macaron-pink: #ffc0d9;
+  --macaron-pink-dark: #ff9db7;
+  --macaron-lavender: #e6d7f1;
+  --macaron-lavender-dark: #d4a8e8;
+  --macaron-mint: #d4f1e8;
+  --macaron-mint-dark: #a8e6d4;
+  --macaron-peach: #ffd9c4;
+  --macaron-peach-dark: #ffb399;
+  --macaron-sky: #c9e4ff;
+  --macaron-sky-dark: #9ecbf0;
+  --macaron-lemon: #fff5c4;
+  --macaron-lemon-dark: #ffe99e;
+  --macaron-rose: #ffcfe1;
+  --macaron-rose-dark: #ffb3d1;
+  
+  /* Neutrals */
+  --background: #fafbfc;
+  --foreground: #3d3d4d;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --text-gray: #6b7280;
+  --border-light: #e8eef7;
   --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   --font-mono: 'Courier New', monospace;
 }
@@ -23,7 +41,7 @@ html {
 }
 
 body {
-  background: var(--background);
+  background: linear-gradient(135deg, #fafbfc 0%, #f5f0f9 50%, #f0f5f9 100%);
   color: var(--foreground);
   font-family: var(--font-sans);
   font-weight: 400;
@@ -110,20 +128,22 @@ button:active {
 
 /* Scrollbar styling */
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--background);
+  background: rgba(230, 215, 241, 0.1);
+  border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #fb923c;
-  border-radius: 4px;
+  background: linear-gradient(180deg, var(--macaron-lavender) 0%, var(--macaron-sky) 100%);
+  border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #f97316;
+  background: linear-gradient(180deg, var(--macaron-lavender-dark) 0%, var(--macaron-sky-dark) 100%);
 }
 
 /* Utility classes */
