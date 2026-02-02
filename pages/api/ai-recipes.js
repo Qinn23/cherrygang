@@ -56,7 +56,7 @@ Format:
     ],
     generationConfig: {
       temperature: 0.75,
-      maxOutputTokens: 896,
+      maxOutputTokens: 2048,
     },
   };
 
@@ -75,6 +75,7 @@ Format:
 
     if (!response.ok) {
       const errorText = await response.text();
+      console.error('Gemini API error:', errorText);
       return res.status(500).json({
         error: "Gemini API request failed",
         details: errorText,
@@ -85,8 +86,17 @@ Format:
     const text =
       data?.candidates?.[0]?.content?.parts?.map((p) => p.text).join("") ?? "";
 
+    if (!text) {
+      console.error('No text in response:', data);
+      return res.status(500).json({
+        error: "No recipe content generated",
+        details: "API response was empty"
+      });
+    }
+
     return res.status(200).json({ text });
   } catch (error) {
+    console.error('Recipe API error:', error);
     return res.status(500).json({
       error: "Failed to call Gemini API",
       details: error?.message ?? String(error),

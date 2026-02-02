@@ -9,6 +9,8 @@ import {
 
 const ProfilesContext = React.createContext(null);
 
+export { ProfilesContext };
+
 export function ProfilesProvider({ children }) {
   const [profiles, setProfiles] = React.useState(() => defaultProfiles());
   const [selectedDinerIds, setSelectedDinerIds] = React.useState(() => []);
