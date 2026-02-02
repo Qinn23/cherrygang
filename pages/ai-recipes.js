@@ -2,6 +2,7 @@ import React from "react";
 import { DM_Sans } from "next/font/google";
 import { Card, CardBody, Button } from "@heroui/react";
 import Link from "next/link";
+import { splitCsv } from "@/lib/profiles";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -32,12 +33,24 @@ export default function AiRecipesPage() {
     setSelectedRecipeIndex(null);
     setPickNumber("");
 
+    // Normalize comma-separated ingredient tokens and apply simple typo corrections
+    const typoCorrections = {
+      spagetti: "spaghetti",
+      spagettii: "spaghetti",
+      tomatos: "tomato",
+      tomates: "tomato",
+      chiken: 'chicken',
+    };
+
+    const cleanedTokens = splitCsv(ingredients).map((t) => typoCorrections[t] ?? t);
+    const cleanedIngredients = cleanedTokens.join(", ") || ingredients;
+
     try {
       const res = await fetch("/api/ai-recipes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ingredientsDescription: ingredients,
+          ingredientsDescription: cleanedIngredients,
           householdDescription: household,
           filters,
         }),
