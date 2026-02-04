@@ -390,20 +390,24 @@ export default function Home() {
                   icon={iconClock()}
                 />
               </Link>
-              <DashboardStatCard
-                title="Suggested recipes"
-                value={`${recipes.length}`}
-                subtext="Based on what you have + what expires soon"
-                accent="sky"
-                icon={iconSpark()}
-              />
-              <DashboardStatCard
-                title="Food saved"
-                value={`${foodSavedKg.toFixed(1)} kg`}
-                subtext="Saved from waste this month (estimate)"
-                accent="emerald"
-                icon={iconJar()}
-              />
+              <Link href="/suggested-recipes" className="block">
+                <DashboardStatCard
+                  title="Suggested recipes"
+                  value={`${recipes.length}`}
+                  subtext="Based on what you have + what expires soon"
+                  accent="sky"
+                  icon={iconSpark()}
+                />
+              </Link>
+              <Link href="/food-save" className="block">
+                <DashboardStatCard
+                  title="Food saved"
+                  value={`${foodSavedKg.toFixed(1)} kg`}
+                  subtext="Saved from waste this month (estimate)"
+                  accent="emerald"
+                  icon={iconJar()}
+                />
+              </Link>
               <DashboardStatCard
                 title="CO₂ reduced"
                 value={`${co2ReducedKg.toFixed(1)} kg`}
