@@ -15,13 +15,27 @@ export function ProfilesProvider({ children }) {
   const [profiles, setProfiles] = React.useState(() => defaultProfiles());
   const [selectedDinerIds, setSelectedDinerIds] = React.useState(() => []);
   const [isHydrated, setIsHydrated] = React.useState(false);
+  const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
-    const p = loadProfiles();
-    setProfiles(p);
-    const ids = loadSelectedDinerIds(p.map((x) => x.id));
-    setSelectedDinerIds(ids.length ? ids : p.map((x) => x.id));
-    setIsHydrated(true);
+    const loadData = async () => {
+      try {
+        const p = await loadProfiles();
+        setProfiles(p);
+        const ids = loadSelectedDinerIds(p.map((x) => x.id));
+        setSelectedDinerIds(ids.length ? ids : p.map((x) => x.id));
+      } catch (error) {
+        console.error("Failed to load profiles from Firebase:", error);
+        // Fall back to defaults on error
+        const p = defaultProfiles();
+        setProfiles(p);
+        setSelectedDinerIds(p.map((x) => x.id));
+      } finally {
+        setIsHydrated(true);
+        setLoading(false);
+      }
+    };
+    loadData();
   }, []);
 
   React.useEffect(() => {
@@ -41,8 +55,9 @@ export function ProfilesProvider({ children }) {
       selectedDinerIds,
       setSelectedDinerIds,
       isHydrated,
+      loading,
     }),
-    [profiles, selectedDinerIds, isHydrated]
+    [profiles, selectedDinerIds, isHydrated, loading]
   );
 
   return (
