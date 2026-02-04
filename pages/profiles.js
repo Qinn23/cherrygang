@@ -80,6 +80,7 @@ export default function ProfilesPage() {
   React.useEffect(() => {
     async function fetchProfiles() {
       const data = await loadProfiles();
+      console.log("Loaded profiles:", data);
       setProfiles(data);
     }
     fetchProfiles();

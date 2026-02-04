@@ -1,12 +1,25 @@
 import { db } from '../firebase.js';
-import { collection, doc, setDoc, deleteDoc, onSnapshot } from "firebase/firestore";
+import { collection, doc, setDoc, deleteDoc, onSnapshot, getDocs } from "firebase/firestore";
+
+// ------------------------------
+// Load profiles once
+// ------------------------------
+export async function loadProfiles() {
+  try {
+    const snapshot = await getDocs(collection(db, "profiles"));
+    return snapshot.docs.map(doc => doc.data());
+  } catch (e) {
+    console.error("Failed to load profiles:", e);
+    return [];
+  }
+}
 
 // ------------------------------
 // Real-time listener for profiles
 // ------------------------------
 export function subscribeProfiles(callback) {
-  // Listen to the "users" collection in real-time
-  const unsubscribe = onSnapshot(collection(db, "users"), (snapshot) => {
+  // Listen to the "profiles" collection in real-time
+  const unsubscribe = onSnapshot(collection(db, "profiles"), (snapshot) => {
     const profiles = snapshot.docs.map(doc => doc.data());
     callback(profiles);
   }, (error) => {
@@ -21,7 +34,7 @@ export function subscribeProfiles(callback) {
 // ------------------------------
 export async function saveProfile(profile) {
   try {
-    await setDoc(doc(db, "users", profile.id), profile); // <-- store in "users" collection
+    await setDoc(doc(db, "profiles", profile.id), profile); // <-- store in "profiles" collection
   } catch (e) {
     console.error("Failed to save profile:", e);
   }
@@ -32,7 +45,7 @@ export async function saveProfile(profile) {
 // ------------------------------
 export async function deleteProfile(id) {
   try {
-    await deleteDoc(doc(db, "users", id)); // <-- delete from "users" collection
+    await deleteDoc(doc(db, "profiles", id)); // <-- delete from "profiles" collection
   } catch (e) {
     console.error("Failed to delete profile:", e);
   }
