@@ -35,7 +35,12 @@ export default function LoginPage() {
         : await loginWithEmail(email, password);
 
       if (result.success) {
-        router.push("/");
+        // If this was a signup, send the new user to complete their profile
+        if (isSignup) {
+          router.push("/edit-profile");
+        } else {
+          router.push("/");
+        }
       } else {
         setError(result.error || "Authentication failed");
       }

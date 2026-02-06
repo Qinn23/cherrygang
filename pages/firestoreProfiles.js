@@ -1,4 +1,4 @@
-import { db } from '../firebase.js';
+import { db } from '@/firebase';
 import { collection, doc, setDoc, deleteDoc, onSnapshot, getDocs } from "firebase/firestore";
 
 // ------------------------------
@@ -7,26 +7,32 @@ import { collection, doc, setDoc, deleteDoc, onSnapshot, getDocs } from "firebas
 export async function loadProfiles() {
   try {
     const snapshot = await getDocs(collection(db, "profiles"));
-    return snapshot.docs.map(doc => doc.data());
+    return snapshot.docs.map(doc => ({
+      id: doc.id,    // <-- include this
+      ...doc.data()
+    }));
   } catch (e) {
     console.error("Failed to load profiles:", e);
     return [];
   }
 }
 
+
 // ------------------------------
 // Real-time listener for profiles
 // ------------------------------
 export function subscribeProfiles(callback) {
-  // Listen to the "profiles" collection in real-time
   const unsubscribe = onSnapshot(collection(db, "profiles"), (snapshot) => {
-    const profiles = snapshot.docs.map(doc => doc.data());
+    const profiles = snapshot.docs.map(doc => ({
+      id: doc.id,   // <-- include this
+      ...doc.data()
+    }));
     callback(profiles);
   }, (error) => {
     console.error("Failed to subscribe to profiles:", error);
   });
 
-  return unsubscribe; // Call this function to stop listening
+  return unsubscribe;
 }
 
 // ------------------------------

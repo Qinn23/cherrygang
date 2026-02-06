@@ -4,7 +4,9 @@ import { DM_Sans } from "next/font/google";
 import { Card, CardBody, Button, Input } from "@heroui/react";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthContext";
-import { updateProfile } from "@/lib/profiles";
+import { updateProfile, createProfile } from "@/lib/profiles";
+import { deleteUser } from "firebase/auth";
+import { auth } from "@/firebase";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -13,7 +15,7 @@ const dmSans = DM_Sans({
 
 export default function EditProfilePage() {
   const router = useRouter();
-  const { profile, isAuthenticated, loading } = useAuth();
+  const { profile, user, isAuthenticated, loading } = useAuth();
   const [formData, setFormData] = React.useState({
     name: "",
     allergies: "",
@@ -24,6 +26,8 @@ export default function EditProfilePage() {
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState("");
   const [success, setSuccess] = React.useState("");
+  const [deleting, setDeleting] = React.useState(false);
+  const [showDeleteModal, setShowDeleteModal] = React.useState(false);
 
   React.useEffect(() => {
     if (loading) return;
@@ -83,20 +87,55 @@ export default function EditProfilePage() {
           .filter(Boolean),
       };
 
-      const result = await updateProfile(profile.id, updates);
+      let result;
+
+      if (profile && profile.id) {
+        result = await updateProfile(profile.id, updates);
+      } else {
+        // create a new profile tied to the user's email
+        const email = user?.email || "";
+        result = await createProfile(email, updates);
+        if (result.success) {
+          // set profile id so context reload can pick it up
+          // we don't directly set context here; subscribeToAuthState will reload profile
+        }
+      }
 
       if (result.success) {
-        setSuccess("Profile updated successfully!");
+        setSuccess("Profile saved successfully!");
         setTimeout(() => {
           router.push("/");
         }, 1500);
       } else {
-        setError(result.error || "Failed to update profile");
+        setError(result.error || "Failed to save profile");
       }
     } catch (err) {
       setError(err.message || "An error occurred");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    setDeleting(true);
+    setError("");
+
+    try {
+      if (!user) {
+        setError("User not found");
+        setDeleting(false);
+        return;
+      }
+
+      // Delete the Firebase auth user
+      await deleteUser(user);
+
+      // Redirect to login
+      router.push("/login");
+    } catch (err) {
+      setError(err.message || "Failed to delete account");
+      setDeleting(false);
+      setShowDeleteModal(false);
     }
   }
 
@@ -247,11 +286,56 @@ export default function EditProfilePage() {
                 >
                   {saving ? "Saving…" : "Save Profile"}
                 </Button>
+
+                <div className="border-t pt-4">
+                  <Button
+                    type="button"
+                    onClick={() => setShowDeleteModal(true)}
+                    isDisabled={deleting}
+                    className="w-full h-10 rounded-lg bg-red-600 text-sm font-semibold text-white hover:bg-red-700"
+                  >
+                    {deleting ? "Deleting…" : "Delete Account"}
+                  </Button>
+                  <p className="text-xs text-slate-500 mt-2 text-center">
+                    This action cannot be undone
+                  </p>
+                </div>
               </form>
             </CardBody>
           </Card>
         </div>
       </main>
+
+      {/* Delete confirmation modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50">
+          <div className="rounded-2xl border border-red-200 bg-white p-6 shadow-lg max-w-sm w-full mx-4">
+            <h2 className="text-lg font-semibold text-slate-900">Delete Account?</h2>
+            <p className="mt-2 text-sm text-slate-600">
+              This will permanently delete your account and all associated data. This action cannot be undone.
+            </p>
+            
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowDeleteModal(false)}
+                disabled={deleting}
+                className="flex-1 rounded-lg bg-slate-500/10 px-4 py-2 text-sm font-semibold text-slate-800 ring-1 ring-inset ring-slate-500/15 hover:bg-slate-500/15 disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={deleting}
+                className="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+              >
+                {deleting ? "Deleting…" : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

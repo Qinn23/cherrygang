@@ -1,6 +1,8 @@
 import React from "react";
 import { loadProfiles, saveProfile, deleteProfile, splitCsv, normalizeToken } from "./firestoreProfiles";
 import { useProfiles } from "@/components/ProfilesContext";
+import { useAuth } from "@/components/AuthContext";
+import { getOrCreateHouseholdInviteCode } from "@/lib/households";
 import Link from "next/link";
 
 function Field({ label, children, hint }) {
@@ -73,18 +75,24 @@ function ProfileEditor({ initial, onSave, onCancel }) {
 }
 
 export default function ProfilesPage() {
+  const { household } = useAuth();
   const [profiles, setProfiles] = React.useState([]);
   const [editingId, setEditingId] = React.useState(null);
   const [isCreating, setIsCreating] = React.useState(false);
+  const [showCodeModal, setShowCodeModal] = React.useState(false);
+  const [inviteCode, setInviteCode] = React.useState("");
+  const [codeLoading, setCodeLoading] = React.useState(false);
 
   React.useEffect(() => {
     async function fetchProfiles() {
-      const data = await loadProfiles();
-      console.log("Loaded profiles:", data);
+      const data = await loadProfiles(household?.id);
+      console.log("Loaded profiles for household:", household?.id, data);
       setProfiles(data);
     }
-    fetchProfiles();
-  }, []);
+    if (household?.id) {
+      fetchProfiles();
+    }
+  }, [household?.id]);
 
   const editing = profiles.find(p => p.id === editingId) ?? null;
 
@@ -104,6 +112,35 @@ export default function ProfilesPage() {
     if (editingId === id) setEditingId(null);
   }
 
+  async function generateAndShowCode() {
+    console.log("Generate code clicked, household:", household);
+    if (!household?.id) {
+      alert("Household not loaded. Please refresh the page.");
+      return;
+    }
+    
+    setCodeLoading(true);
+    try {
+      const result = await getOrCreateHouseholdInviteCode(household.id);
+      console.log("Code result:", result);
+      if (result.success) {
+        setInviteCode(result.code);
+        setShowCodeModal(true);
+      } else {
+        alert("Failed to generate code: " + result.error);
+      }
+    } catch (error) {
+      console.error("Error generating code:", error);
+      alert("Error: " + error.message);
+    } finally {
+      setCodeLoading(false);
+    }
+  }
+
+  function copyToClipboard() {
+    navigator.clipboard.writeText(inviteCode);
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-amber-50 via-orange-50 to-emerald-50 text-zinc-900">
       <header className="border-b border-amber-200/60 bg-white/70 backdrop-blur">
@@ -114,7 +151,9 @@ export default function ProfilesPage() {
           </div>
           <div className="flex items-center gap-3">
             <Link href="/" className="rounded-full bg-zinc-500/10 px-4 py-2 text-sm font-semibold text-zinc-800 ring-1 ring-inset ring-zinc-500/15 hover:bg-zinc-500/15">Back to dashboard</Link>
-            <button type="button" onClick={() => { setIsCreating(true); setEditingId(null); }} className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700">Add member</button>
+            <button type="button" onClick={generateAndShowCode} disabled={codeLoading} className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60">
+              {codeLoading ? "…" : "Generate code"}
+            </button>
           </div>
         </div>
       </header>
@@ -150,12 +189,48 @@ export default function ProfilesPage() {
               ) : editing ? (
                 <ProfileEditor initial={editing} onSave={save} onCancel={() => setEditingId(null)} />
               ) : (
-                <div className="rounded-xl border border-dashed border-amber-200/70 bg-white/60 p-4 text-sm text-zinc-700">Pick a member on the left, or click “Add member”.</div>
+                <div className="rounded-xl border border-dashed border-amber-200/70 bg-white/60 p-4 text-sm text-zinc-700">Pick a member on the left, or click "Generate code" to invite others.</div>
               )}
             </div>
           </section>
         </div>
       </main>
+
+      {/* Invite code modal */}
+      {showCodeModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 backdrop-blur-sm z-50">
+          <div className="rounded-2xl border border-amber-200/60 bg-white p-6 shadow-lg max-w-sm w-full mx-4">
+            <h2 className="text-lg font-semibold text-zinc-900">Invite family members</h2>
+            <p className="mt-2 text-sm text-zinc-600">Share this code with other family members so they can join your household:</p>
+            
+            <div className="mt-4 flex items-center gap-2">
+              <input
+                type="text"
+                value={inviteCode}
+                readOnly
+                className="flex-1 rounded-lg border border-amber-200/70 bg-amber-50 px-3 py-2 text-sm font-mono font-semibold text-zinc-900 outline-none"
+              />
+              <button
+                type="button"
+                onClick={copyToClipboard}
+                className="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
+              >
+                Copy
+              </button>
+            </div>
+            
+            <p className="mt-3 text-xs text-zinc-500">This code is permanent and can be shared with multiple people.</p>
+            
+            <button
+              type="button"
+              onClick={() => setShowCodeModal(false)}
+              className="mt-4 w-full rounded-lg bg-zinc-500/10 px-4 py-2 text-sm font-semibold text-zinc-800 ring-1 ring-inset ring-zinc-500/15 hover:bg-zinc-500/15"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
