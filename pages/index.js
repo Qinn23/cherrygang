@@ -1,11 +1,14 @@
 import React from "react";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { AlertsPanel } from "@/components/AlertsPanel";
 import { DashboardStatCard } from "@/components/DashboardStatCard";
 import { RecipeCard } from "@/components/RecipeCard";
 import { DinerSelector } from "@/components/DinerSelector";
 import { useProfiles } from "@/components/ProfilesContext";
+import { useAuth } from "@/components/AuthContext";
+import { logout } from "@/lib/auth";
 import { normalizeToken } from "@/lib/profiles";
 import { recommendRecipesWithGemini } from "@/lib/geminiRecommender";
 import {
@@ -106,6 +109,8 @@ function iconSpark() {
 }
 
 export default function Home() {
+  const router = useRouter();
+  const { isAuthenticated, profile, user } = useAuth();
   const { profiles, selectedDinerIds } = useProfiles();
   // Use shared sample pantry items (replace with API calls later)
   const ingredients = sampleIngredients;
@@ -267,15 +272,46 @@ export default function Home() {
       <div className="flex min-h-screen">
         {/* Sidebar */}
         <aside className="hidden w-64 flex-shrink-0 border-r-2 border-macaron-lemon bg-gradient-to-b from-white via-macaron-lemon/5 to-macaron-lavender/10 px-5 py-6 lg:flex lg:flex-col">
-          <div className="flex items-center gap-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-macaron-lemon text-sm font-semibold text-macaron-lemon-dark shadow-macaron-md">
-              SP
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-macaron-lemon text-sm font-semibold text-macaron-lemon-dark shadow-macaron-md">
+                SP
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-macaron-lemon-dark">
+                  Smart Pantry
+                </p>
+                <p className="text-sm font-semibold text-macaron-lemon-dark">Household</p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-macaron-lemon-dark">
-                Smart Pantry
-              </p>
-              <p className="text-sm font-semibold text-macaron-lemon-dark">Household</p>
+            <div className="flex flex-col gap-2">
+              {isAuthenticated ? (
+                <>
+                  <p className="text-xs text-macaron-lemon-dark truncate">{profile?.name || user?.email}</p>
+                  <Link
+                    href="/edit-profile"
+                    className="rounded px-2 py-1 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 transition text-center"
+                  >
+                    Edit
+                  </Link>
+                  <button
+                    onClick={async () => {
+                      await logout();
+                      router.push("/login");
+                    }}
+                    className="rounded px-2 py-1 text-xs font-medium text-white bg-macaron-pink hover:bg-macaron-pink/90 transition"
+                  >
+                    Logout
+                  </button>
+                </>
+              ) : (
+                <Link
+                  href="/login"
+                  className="rounded px-3 py-1.5 text-xs font-medium text-white bg-macaron-lemon hover:bg-macaron-lemon/90 transition text-center"
+                >
+                  Login
+                </Link>
+              )}
             </div>
           </div>
 

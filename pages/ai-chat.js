@@ -2,6 +2,7 @@ import React from "react";
 import { DM_Sans } from "next/font/google";
 import { Card, CardBody, Button } from "@heroui/react";
 import Link from "next/link";
+import { useAuth } from "@/components/AuthContext";
 
 const dmSans = DM_Sans({
   subsets: ["latin"],
@@ -9,6 +10,7 @@ const dmSans = DM_Sans({
 });
 
 export default function AiChatPage() {
+  const { profile, isAuthenticated } = useAuth();
   const hour = new Date().getHours();
   const greeting =
     hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
@@ -18,7 +20,7 @@ export default function AiChatPage() {
       id: 0,
       role: "assistant",
       content:
-        "Hi! I’m your Smart Pantry assistant. Ask me how to use up ingredients, plan meals, or turn leftovers into fertilizer.",
+        "Hi! I'm your Smart Pantry assistant. Ask me how to use up ingredients, plan meals, or turn leftovers into fertilizer.",
     },
   ]);
   const [input, setInput] = React.useState("");
@@ -82,7 +84,9 @@ export default function AiChatPage() {
     }
   }
 
-  return (
+
+
+return (
     <div
       className={`${dmSans.className} flex min-h-screen flex-col bg-gradient-to-b from-emerald-50 via-white to-teal-50 text-slate-900`}
     >
@@ -107,7 +111,8 @@ export default function AiChatPage() {
               AI assistant
             </p>
             <h1 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
-              {greeting}, Milovan.
+              {greeting}
+              {profile?.name ? `, ${profile.name}.` : "."}
               <br />
               Can I help you with anything?
             </h1>
@@ -215,4 +220,5 @@ export default function AiChatPage() {
     </div>
   );
 }
+
 
