@@ -49,14 +49,14 @@ export function DashboardStatCard({
     <div className={`rounded-2xl border-2 ${a.border} bg-white/90 p-5 shadow-macaron-md ring-2 ring-inset ${a.ring}/20 backdrop-blur hover:shadow-macaron-lg transition-all`}>
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
-          <p className="text-sm font-medium text-macaron-lavender-dark">
+          <p className="stat-label text-gray-700">
             {title}
           </p>
-          <p className="mt-2 truncate text-3xl font-semibold tracking-tight text-macaron-pink-dark">
+          <p className="stat-value mt-2 text-gray-900">
             {value}
           </p>
           {subtext ? (
-            <p className="mt-2 text-sm text-macaron-lavender-dark">
+            <p className="card-subtitle mt-3 text-gray-700">
               {subtext}
             </p>
           ) : null}

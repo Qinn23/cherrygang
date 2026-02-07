@@ -274,20 +274,20 @@ export default function Home() {
         <aside className="hidden w-64 flex-shrink-0 border-r-2 border-macaron-lemon bg-gradient-to-b from-white via-macaron-lemon/5 to-macaron-lavender/10 px-5 py-6 lg:flex lg:flex-col">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-macaron-lemon text-sm font-semibold text-macaron-lemon-dark shadow-macaron-md">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-macaron-lemon text-sm font-semibold text-gray-900 shadow-macaron-md">
                 SP
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-macaron-lemon-dark">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-900">
                   Smart Pantry
                 </p>
-                <p className="text-sm font-semibold text-macaron-lemon-dark">Household</p>
+                <p className="text-sm font-semibold text-gray-800">Household</p>
               </div>
             </div>
             <div className="flex flex-col gap-2">
               {isAuthenticated ? (
                 <>
-                  <p className="text-xs text-macaron-lemon-dark truncate">{profile?.name || user?.email}</p>
+                  <p className="text-xs text-gray-900 truncate">{profile?.name || user?.email}</p>
                   <Link
                     href="/edit-profile"
                     className="rounded px-2 py-1 text-xs font-medium text-white bg-emerald-600 hover:bg-emerald-700 transition text-center"
@@ -316,7 +316,7 @@ export default function Home() {
           </div>
 
           <nav className="mt-8 space-y-1 text-sm">
-            <p className="px-2 text-xs font-semibold uppercase tracking-wide text-macaron-lavender-dark">
+            <p className="stat-label px-2 text-gray-700">
               Overview
             </p>
             <Link
@@ -327,57 +327,57 @@ export default function Home() {
             </Link>
             <Link
               href="/ai-chat"
-              className="mt-1 flex items-center justify-between rounded-lg px-3 py-2 text-sm text-macaron-pink-dark hover:bg-macaron-lavender/20 transition-colors"
+              className="mt-1 flex items-center justify-between rounded-lg px-3 py-2 text-sm text-gray-900 hover:bg-macaron-lavender/20 transition-colors"
             >
               <span>AI assistant</span>
             </Link>
 
-            <p className="mt-6 px-2 text-xs font-semibold uppercase tracking-wide text-macaron-lavender-dark">
+            <p className="mt-6 stat-label px-2 text-gray-700">
               Pantry
             </p>
             <Link
               href="/add-food"
-              className="mt-1 flex items-center justify-between rounded-lg px-3 py-2 text-sm text-macaron-pink-dark hover:bg-macaron-mint/20 transition-colors"
+              className="mt-1 flex items-center justify-between rounded-lg px-3 py-2 text-sm text-gray-900 hover:bg-macaron-mint/20 transition-colors"
             >
               <span>Add food</span>
             </Link>
             <Link
               href="/recipes"
-              className="flex items-center justify-between rounded-lg px-3 py-2 text-sm text-macaron-pink-dark hover:bg-macaron-sky/20 transition-colors"
+              className="flex items-center justify-between rounded-lg px-3 py-2 text-sm text-gray-900 hover:bg-macaron-sky/20 transition-colors"
             >
               <span>Recipes</span>
             </Link>
             <Link
               href="/ai-recipes"
-              className="flex items-center justify-between rounded-lg px-3 py-2 text-sm text-macaron-pink-dark hover:bg-macaron-peach/20 transition-colors"
+              className="flex items-center justify-between rounded-lg px-3 py-2 text-sm text-gray-900 hover:bg-macaron-peach/20 transition-colors"
             >
               <span>AI recipe generator</span>
             </Link>
 
-            <p className="mt-6 px-2 text-xs font-semibold uppercase tracking-wide text-macaron-lavender-dark">
+            <p className="mt-6 stat-label px-2 text-gray-700">
               People & tips
             </p>
             <Link
               href="/profiles"
-              className="mt-1 flex items-center justify-between rounded-lg px-3 py-2 text-sm text-macaron-pink-dark hover:bg-macaron-lemon/20 transition-colors"
+              className="mt-1 flex items-center justify-between rounded-lg px-3 py-2 text-sm text-gray-900 hover:bg-macaron-lemon/20 transition-colors"
             >
               <span>Family profiles</span>
             </Link>
             <Link
               href="/community"
-              className="flex items-center justify-between rounded-lg px-3 py-2 text-sm text-macaron-pink-dark hover:bg-macaron-rose/20 transition-colors"
+              className="flex items-center justify-between rounded-lg px-3 py-2 text-sm text-gray-900 hover:bg-macaron-rose/20 transition-colors"
             >
               <span>Community life hacks</span>
             </Link>
             <Link
               href="/fertilizer"
-              className="flex items-center justify-between rounded-lg px-3 py-2 text-sm text-macaron-pink-dark hover:bg-macaron-mint/20 transition-colors"
+              className="flex items-center justify-between rounded-lg px-3 py-2 text-sm text-gray-900 hover:bg-macaron-mint/20 transition-colors"
             >
               <span>Fertilizer tips</span>
             </Link>
           </nav>
 
-          <div className="mt-auto pt-8 text-xs text-macaron-lavender-dark">
+          <div className="mt-auto pt-8 text-xs text-gray-700">
             <p>Food waste dashboard prototype</p>
           </div>
         </aside>
@@ -388,13 +388,13 @@ export default function Home() {
           <header className="border-b-2 border-macaron-lavender bg-gradient-macaron-lavender backdrop-blur-md">
             <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-macaron-lavender-dark">
+                <p className="stat-label text-gray-700">
                   Dashboard
                 </p>
-                <h1 className="mt-1 text-2xl font-semibold tracking-tight text-macaron-lavender-dark">
+                <h1 className="page-title mt-2 text-gray-900">
                   Today in your kitchen
                 </h1>
-                <p className="mt-1 text-xs text-macaron-lavender-dark">
+                <p className="card-subtitle mt-2 text-gray-700">
                   See what&apos;s expiring, what to cook, and how your household is reducing waste.
                 </p>
               </div>
@@ -459,10 +459,10 @@ export default function Home() {
               <div className="lg:col-span-2 space-y-6">
                 <div className="rounded-2xl border-2 border-macaron-pink bg-white/90 p-5 shadow-macaron-md hover:shadow-macaron-lg transition-all">
                   <div className="flex items-center justify-between gap-3">
-                    <h2 className="text-sm font-semibold tracking-tight text-macaron-pink-dark">
+                    <h2 className="card-title text-gray-900">
                       Who are we cooking for?
                     </h2>
-                    <p className="text-xs text-macaron-lavender-dark">
+                    <p className="card-subtitle text-gray-700">
                       Family profiles adjust allergies and preferences automatically.
                     </p>
                   </div>
@@ -474,10 +474,10 @@ export default function Home() {
                 <div className="rounded-2xl border-2 border-macaron-mint bg-white/90 p-5 shadow-macaron-md hover:shadow-macaron-lg transition-all">
                   <div className="flex items-end justify-between gap-4">
                     <div>
-                      <h2 className="text-sm font-semibold tracking-tight text-macaron-mint-dark">
+                      <h2 className="card-title text-gray-900">
                         Suggested recipes
                       </h2>
-                      <p className="mt-1 text-xs text-macaron-lavender-dark">
+                      <p className="card-subtitle mt-2 text-gray-700">
                         Prioritizing ingredients that are expiring soon and your diners&apos; needs.
                       </p>
                     </div>
@@ -512,10 +512,10 @@ export default function Home() {
               {/* Right: alerts + AI + expiring list */}
               <div className="space-y-6">
                 <div className="rounded-2xl border-2 border-macaron-pink bg-white/90 p-5 shadow-macaron-md hover:shadow-macaron-lg transition-all">
-                  <h2 className="text-sm font-semibold tracking-tight text-macaron-pink-dark">
+                  <h2 className="card-title text-gray-900">
                     Alerts
                   </h2>
-                  <p className="mt-1 text-xs text-macaron-lavender-dark">
+                  <p className="card-subtitle mt-2 text-gray-700">
                     Expired items, urgent ingredients, and quick food-saving tips.
                   </p>
                   <div className="mt-4">
@@ -526,10 +526,10 @@ export default function Home() {
                 <section className="rounded-2xl border-2 border-macaron-sky bg-white/90 p-5 shadow-macaron-md hover:shadow-macaron-lg transition-all">
                   <div className="flex items-center justify-between gap-4">
                     <div>
-                      <h2 className="text-sm font-semibold tracking-tight text-macaron-sky-dark">
+                      <h2 className="card-title text-gray-900">
                         Gemini recommendations (preview)
                       </h2>
-                      <p className="mt-1 text-xs text-macaron-lavender-dark">
+                      <p className="card-subtitle mt-2 text-gray-700">
                         Soon this will generate tailored meal plans for your household.
                       </p>
                     </div>
@@ -565,10 +565,10 @@ export default function Home() {
 
                 <section className="rounded-2xl border-2 border-macaron-peach bg-white/90 p-5 shadow-macaron-md hover:shadow-macaron-lg transition-all">
                   <div className="flex items-center justify-between gap-4">
-                    <h2 className="text-sm font-semibold tracking-tight text-macaron-peach-dark">
+                    <h2 className="card-title text-gray-900">
                       Expiring overview
                     </h2>
-                    <span className="text-xs text-macaron-lavender-dark">
+                    <span className="text-xs font-medium text-gray-700">
                       Next {expiringWindowDays} days
                     </span>
                   </div>
@@ -596,10 +596,10 @@ export default function Home() {
                           className="flex items-center justify-between gap-3 rounded-xl border-2 border-macaron-peach/30 bg-macaron-peach/10 px-4 py-3 hover:border-macaron-peach transition-colors"
                         >
                           <div className="min-w-0">
-                            <p className="truncate text-sm font-medium text-macaron-peach-dark">
+                            <p className="text-sm font-bold text-gray-900">
                               {i.name}
                             </p>
-                            <p className="mt-0.5 text-xs text-macaron-lavender-dark">
+                            <p className="mt-0.5 text-xs text-gray-700">
                               {i.qty} • {i.category}
                             </p>
                           </div>
