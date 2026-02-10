@@ -262,8 +262,31 @@ export default function Home() {
     },
   ];
 
-  const foodSavedKg = 3.4;
-  const co2ReducedKg = 8.9;
+const co2ReducedKg = 8.9;
+
+// =====================
+// Pantry Health Score
+// =====================
+const totalItems = ingredients.length;
+const expiredCount = expired.length;
+const expiringSoonCount = expiringSoon.length;
+
+// Scoring logic:
+// Fresh = 2 points
+// Expiring soon = 1 point
+// Expired = 0 points
+const maxPoints = totalItems * 2;
+const earnedPoints =
+  (totalItems - expiredCount - expiringSoonCount) * 2 +
+  expiringSoonCount * 1;
+
+const pantryHealthScore =
+  maxPoints === 0 ? 100 : Math.round((earnedPoints / maxPoints) * 100);
+
+const pantryHealthSubtext =
+  expiredCount > 0
+    ? `${expiredCount} expired • ${expiringSoonCount} expiring soon`
+    : `${expiringSoonCount} expiring soon`;
 
   return (
     <div
@@ -435,22 +458,32 @@ export default function Home() {
                   icon={iconSpark()}
                 />
               </Link>
-              <Link href="/food-save" className="block">
+              <Link href="/pantry-health" className="block">
                 <DashboardStatCard
-                  title="Food saved"
-                  value={`${foodSavedKg.toFixed(1)} kg`}
-                  subtext="Saved from waste this month (estimate)"
-                  accent="emerald"
+                  title="Pantry Health Score"
+                  value={`${pantryHealthScore}%`}
+                  subtext={pantryHealthSubtext}
+                  accent={
+                    pantryHealthScore >= 80
+                    ? "emerald"
+                    : pantryHealthScore >= 50
+                    ? "amber"
+                    : "rose"
+                  }
                   icon={iconJar()}
                 />
               </Link>
-              <DashboardStatCard
-                title="CO₂ reduced"
-                value={`${co2ReducedKg.toFixed(1)} kg`}
-                subtext="Avoided emissions from prevented waste"
-                accent="emerald"
-                icon={iconLeaf()}
-              />
+              {/* Wasted Food Card */}
+              <Link href="/wasted-food" className="block">
+                <DashboardStatCard
+                  title="Wasted food"
+                  value={`${expired.length}`} // number of expired items
+                  subtext={`out of ${ingredients.length} total items`}
+                  accent={expired.length === 0 ? "emerald" : expired.length <= 2 ? "amber" : "rose"}
+                  icon={iconLeaf()} // keep leaf icon or replace with trash icon if desired
+                />
+              </Link>
+
             </section>
 
             {/* Main grid */}
