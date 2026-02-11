@@ -1,4 +1,5 @@
 import { auth } from "@/firebase";
+
 import {
   createHousehold,
   generateInviteCode,

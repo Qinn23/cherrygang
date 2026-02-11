@@ -1,20 +1,16 @@
 import { db } from '@/firebase';
-import { collection, doc, setDoc, deleteDoc, onSnapshot, getDocs } from "firebase/firestore";
-
+import { collection, doc, setDoc, deleteDoc, onSnapshot, getDocs, query, where } from "firebase/firestore";
 // ------------------------------
 // Load profiles once
 // ------------------------------
-export async function loadProfiles() {
-  try {
-    const snapshot = await getDocs(collection(db, "profiles"));
-    return snapshot.docs.map(doc => ({
-      id: doc.id,    // <-- include this
-      ...doc.data()
-    }));
-  } catch (e) {
-    console.error("Failed to load profiles:", e);
-    return [];
-  }
+export async function loadProfiles(householdId) {
+  if (!householdId) return [];
+
+  const profilesCol = collection(db, "profiles");
+  const q = query(profilesCol, where("householdId", "==", householdId));
+  const snap = await getDocs(q);
+
+  return snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 }
 
 
