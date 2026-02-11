@@ -27,11 +27,9 @@ export default function AddFoodForm({ onSubmit, isLoading }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.name.trim()) {
-      alert('Please enter a food name');
-      return;
-    }
-    onSubmit(formData);
+    if (!formData.name.trim()) return alert('Please enter a food name');
+    
+    onSubmit(formData); // Call Firebase POST
     setFormData({
       name: '',
       category: 'pantry',
@@ -42,145 +40,94 @@ export default function AddFoodForm({ onSubmit, isLoading }) {
     });
   };
 
-  const getTodayDate = () => {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
-  };
+  const getTodayDate = () => new Date().toISOString().split('T')[0];
 
   return (
     <div className="w-full max-w-2xl mx-auto">
-      <div className="bg-gradient-to-br from-orange-50 to-amber-50 rounded-2xl shadow-lg p-8 border-2 border-orange-200">
-        <h2 className="text-3xl font-bold text-orange-800 mb-2">➕ Add New Food</h2>
-        <p className="text-orange-600 mb-8">Keep track of your ingredients and expiry dates</p>
+      <form onSubmit={handleSubmit} className="space-y-6 bg-white p-6 rounded-xl shadow-lg border-2 border-orange-200">
+        <div>
+          <label>Food Name *</label>
+          <input
+            type="text"
+            name="name"
+            value={formData.name}
+            onChange={handleInputChange}
+            placeholder="e.g., Broccoli"
+            className="w-full border px-3 py-2 rounded"
+          />
+        </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Food Name Input */}
-          <div>
-            <label htmlFor="name" className="block text-sm font-semibold text-gray-800 mb-3">
-              🥕 Food Name *
-            </label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleInputChange}
-              placeholder="e.g., Broccoli, Chicken Breast, Milk"
-              className="w-full px-4 py-3 border-2 border-orange-200 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition bg-white text-gray-800 placeholder-gray-400"
-            />
-          </div>
-
-          {/* Category Selection */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-800 mb-3">📍 Storage Location *</label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {CATEGORIES.map(cat => (
-                <button
-                  key={cat.id}
-                  type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, category: cat.id }))}
-                  className={`p-4 rounded-xl border-2 transition font-semibold text-left ${
-                    formData.category === cat.id
-                      ? 'border-orange-500 bg-orange-100 text-orange-900'
-                      : 'border-orange-200 bg-white text-gray-700 hover:bg-orange-50'
-                  }`}
-                >
-                  <div className="text-xl mb-1">{cat.label}</div>
-                  <div className="text-xs text-gray-600">{cat.description}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Quantity and Unit */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="quantity" className="block text-sm font-semibold text-gray-800 mb-3">
-                📦 Quantity
-              </label>
-              <input
-                type="number"
-                id="quantity"
-                name="quantity"
-                min="1"
-                value={formData.quantity}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 border-2 border-orange-200 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition bg-white text-gray-800"
-              />
-            </div>
-            <div>
-              <label htmlFor="unit" className="block text-sm font-semibold text-gray-800 mb-3">
-                📏 Unit
-              </label>
-              <select
-                id="unit"
-                name="unit"
-                value={formData.unit}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 border-2 border-orange-200 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition bg-white text-gray-800 cursor-pointer"
+        <div>
+          <label>Category *</label>
+          <div className="flex gap-2">
+            {CATEGORIES.map(cat => (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setFormData(prev => ({ ...prev, category: cat.id }))}
+                className={`px-4 py-2 rounded ${
+                  formData.category === cat.id ? 'bg-orange-500 text-white' : 'bg-gray-100'
+                }`}
               >
-                <option value="piece">Piece</option>
-                <option value="kg">Kilogram (kg)</option>
-                <option value="g">Gram (g)</option>
-                <option value="l">Liter (L)</option>
-                <option value="ml">Milliliter (ml)</option>
-                <option value="cup">Cup</option>
-                <option value="tbsp">Tablespoon</option>
-                <option value="tsp">Teaspoon</option>
-                <option value="pack">Pack</option>
-                <option value="box">Box</option>
-              </select>
-            </div>
+                {cat.label}
+              </button>
+            ))}
           </div>
+        </div>
 
-          {/* Expiry Date */}
+        <div className="grid grid-cols-2 gap-4">
           <div>
-            <label htmlFor="expiryDate" className="block text-sm font-semibold text-gray-800 mb-3">
-              📅 Expiry Date
-            </label>
+            <label>Quantity</label>
             <input
-              type="date"
-              id="expiryDate"
-              name="expiryDate"
-              value={formData.expiryDate}
+              type="number"
+              name="quantity"
+              min="1"
+              value={formData.quantity}
               onChange={handleInputChange}
-              min={getTodayDate()}
-              className="w-full px-4 py-3 border-2 border-orange-200 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition bg-white text-gray-800"
+              className="w-full border px-3 py-2 rounded"
             />
-            {formData.expiryDate && (
-              <p className="text-xs text-orange-700 mt-2">
-                ⏰ Days remaining: {Math.ceil((new Date(formData.expiryDate) - new Date()) / (1000 * 60 * 60 * 24))}
-              </p>
-            )}
           </div>
-
-          {/* Notes */}
           <div>
-            <label htmlFor="notes" className="block text-sm font-semibold text-gray-800 mb-3">
-              📝 Notes (optional)
-            </label>
-            <textarea
-              id="notes"
-              name="notes"
-              value={formData.notes}
-              onChange={handleInputChange}
-              placeholder="e.g., Organic, needs washing, sealed pack..."
-              rows="3"
-              className="w-full px-4 py-3 border-2 border-orange-200 rounded-xl focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 transition bg-white text-gray-800 placeholder-gray-400 resize-none"
-            />
+            <label>Unit</label>
+            <select name="unit" value={formData.unit} onChange={handleInputChange} className="w-full border px-3 py-2 rounded">
+              <option value="piece">Piece</option>
+              <option value="kg">kg</option>
+              <option value="g">g</option>
+              <option value="l">L</option>
+              <option value="ml">ml</option>
+              <option value="pack">Pack</option>
+              <option value="box">Box</option>
+            </select>
           </div>
+        </div>
 
-          {/* Action Buttons */}
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold py-3 px-4 rounded-xl transition"
-          >
-            <Plus size={20} />
-            {isLoading ? 'Adding...' : 'Add Food'}
-          </button>
-        </form>
-      </div>
+        <div>
+          <label>Expiry Date</label>
+          <input
+            type="date"
+            name="expiryDate"
+            min={getTodayDate()}
+            value={formData.expiryDate}
+            onChange={handleInputChange}
+            className="w-full border px-3 py-2 rounded"
+          />
+        </div>
+
+        <div>
+          <label>Notes</label>
+          <textarea
+            name="notes"
+            value={formData.notes}
+            onChange={handleInputChange}
+            rows="3"
+            className="w-full border px-3 py-2 rounded"
+          />
+        </div>
+
+        <button type="submit" disabled={isLoading} className="w-full py-2 px-4 bg-orange-500 text-white rounded">
+          <Plus size={20} /> {isLoading ? 'Adding...' : 'Add Food'}
+        </button>
+      </form>
     </div>
   );
 }
