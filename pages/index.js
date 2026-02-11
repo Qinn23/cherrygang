@@ -374,7 +374,7 @@ const pantryHealthSubtext =
               href="/ai-recipes"
               className="flex items-center justify-between rounded-lg px-3 py-2 text-sm text-gray-900 hover:bg-macaron-peach/20 transition-colors"
             >
-              <span>AI recipe generator</span>
+              <span>Smart Meal Generator</span>
             </Link>
 
             <p className="mt-6 stat-label px-2 text-gray-700">

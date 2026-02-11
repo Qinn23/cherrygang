@@ -75,49 +75,40 @@ export default function AiRecipesPage() {
 
         if (cleaned.startsWith("{") && cleaned.includes('"recipes"')) {
           try {
-            // First, try direct JSON.parse
-            const parsed = JSON.parse(cleaned);
+            // First attempt: fix incomplete JSON by closing arrays/objects if needed
+            let jsonStr = cleaned;
+            
+            if (!jsonStr.trim().endsWith("}")) {
+              // Count brackets/braces to close them
+              const openBraces = (jsonStr.match(/{/g) || []).length;
+              const closeBraces = (jsonStr.match(/}/g) || []).length;
+              const openBrackets = (jsonStr.match(/\[/g) || []).length;
+              const closeBrackets = (jsonStr.match(/\]/g) || []).length;
+              
+              // Close incomplete structures
+              for (let i = 0; i < openBrackets - closeBrackets; i++) jsonStr += "]";
+              for (let i = 0; i < openBraces - closeBraces; i++) jsonStr += "}";
+            }
+
+            const parsed = JSON.parse(jsonStr);
             if (Array.isArray(parsed?.recipes)) {
-              const validRecipes = parsed.recipes.filter(
-                (r) => r?.title && Array.isArray(r?.ingredients) && Array.isArray(r?.steps)
-              );
-              if (validRecipes.length) {
-                nextRecipes = validRecipes;
+              // Be lenient: accept recipes with at least a title
+              const recipes = parsed.recipes
+                .filter((r) => r?.title)
+                .map((r) => ({
+                  title: r.title || "Untitled Recipe",
+                  why: Array.isArray(r?.why) ? r.why : [],
+                  ingredients: Array.isArray(r?.ingredients) ? r.ingredients : [],
+                  steps: Array.isArray(r?.steps) ? r.steps : []
+                }));
+              if (recipes.length) {
+                nextRecipes = recipes;
                 fallbackText = "";
               }
             }
           } catch (parseErr) {
-            // If direct parse fails, try to fix incomplete JSON
-            try {
-              let jsonStr = cleaned;
-              
-              // Only try to fix if it looks incomplete (doesn't end properly)
-              if (!jsonStr.trim().endsWith("}")) {
-                // Count brackets/braces to close them
-                const openBraces = (jsonStr.match(/{/g) || []).length;
-                const closeBraces = (jsonStr.match(/}/g) || []).length;
-                const openBrackets = (jsonStr.match(/\[/g) || []).length;
-                const closeBrackets = (jsonStr.match(/\]/g) || []).length;
-                
-                // Close incomplete structures
-                for (let i = 0; i < openBrackets - closeBrackets; i++) jsonStr += "]";
-                for (let i = 0; i < openBraces - closeBraces; i++) jsonStr += "}";
-              }
-
-              const parsed = JSON.parse(jsonStr);
-              if (Array.isArray(parsed?.recipes)) {
-                const validRecipes = parsed.recipes.filter(
-                  (r) => r?.title && Array.isArray(r?.ingredients) && Array.isArray(r?.steps)
-                );
-                if (validRecipes.length) {
-                  nextRecipes = validRecipes;
-                  fallbackText = "";
-                }
-              }
-            } catch (secondErr) {
-              // If all parsing fails, just show the raw text
-              console.warn('Could not parse recipe JSON. Showing raw output.');
-            }
+            // If parsing still fails, just show the raw text
+            console.warn('Could not parse recipe JSON. Showing raw output:', parseErr.message);
           }
         }
       }
@@ -167,14 +158,13 @@ export default function AiRecipesPage() {
         <div className="w-full max-w-5xl space-y-8">
           <section className="space-y-3">
             <p className="text-xs font-semibold uppercase tracking-[0.25em] text-sky-600">
-              AI recipe generator
+              Smart Meal Generator
             </p>
             <h1 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
-              Turn what you have into meals.
+              Don’t Know What to Cook?
             </h1>
             <p className="max-w-xl text-sm text-slate-500">
-              Describe what&apos;s in your kitchen and we&apos;ll generate practical, low-waste
-              recipe ideas tailored to your household.
+              Discover delicious meal ideas when you don't know what to cook.
             </p>
           </section>
 

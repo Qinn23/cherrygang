@@ -20,6 +20,9 @@ export default function FertilizerPage() {
   const [garden, setGarden] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [result, setResult] = React.useState("");
+  const [ideas, setIdeas] = React.useState([]);
+  const [selectedIdeaIndex, setSelectedIdeaIndex] = React.useState(null);
+  const [pickNumber, setPickNumber] = React.useState("");
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -27,6 +30,9 @@ export default function FertilizerPage() {
 
     setLoading(true);
     setResult("");
+    setIdeas([]);
+    setSelectedIdeaIndex(null);
+    setPickNumber("");
 
     try {
       const res = await fetch("/api/ai-fertilizer", {
@@ -44,7 +50,68 @@ export default function FertilizerPage() {
       }
 
       const data = await res.json();
-      setResult(data.text ?? "");
+      let nextIdeas = Array.isArray(data.ideas) ? data.ideas : [];
+      let fallbackText = data.text ?? "";
+
+      if (!nextIdeas.length && typeof fallbackText === "string" && fallbackText.trim()) {
+        const cleaned = fallbackText
+          .trim()
+          .replace(/^```(?:json)?/i, "")
+          .replace(/```$/i, "")
+          .trim();
+
+        if (cleaned.startsWith("{") && cleaned.includes('"ideas"')) {
+          try {
+            const tryRepairJson = (raw) => {
+              let jsonStr = raw.trim();
+              if (!jsonStr.endsWith("}")) {
+                const lastBrace = jsonStr.lastIndexOf("}");
+                if (lastBrace > -1) {
+                  jsonStr = jsonStr.slice(0, lastBrace + 1);
+                }
+              }
+
+              const openBraces = (jsonStr.match(/{/g) || []).length;
+              const closeBraces = (jsonStr.match(/}/g) || []).length;
+              const openBrackets = (jsonStr.match(/\[/g) || []).length;
+              const closeBrackets = (jsonStr.match(/\]/g) || []).length;
+
+              for (let i = 0; i < openBrackets - closeBrackets; i++) jsonStr += "]";
+              for (let i = 0; i < openBraces - closeBraces; i++) jsonStr += "}";
+
+              return jsonStr;
+            };
+
+            let parsed;
+            try {
+              parsed = JSON.parse(cleaned);
+            } catch (firstErr) {
+              parsed = JSON.parse(tryRepairJson(cleaned));
+            }
+            if (Array.isArray(parsed?.ideas)) {
+              nextIdeas = parsed.ideas
+                .filter((i) => i?.title)
+                .map((i) => ({
+                  title: i.title,
+                  summary: i?.summary || "",
+                  steps: Array.isArray(i?.steps) ? i.steps : [],
+                  bestFor: Array.isArray(i?.bestFor) ? i.bestFor : [],
+                  safetyNotes: Array.isArray(i?.safetyNotes) ? i.safetyNotes : [],
+                }))
+                .filter((i) => i.title && i.steps.length);
+
+              if (nextIdeas.length) {
+                fallbackText = "";
+              }
+            }
+          } catch (parseErr) {
+            fallbackText = "The plan could not be formatted. Please try again.";
+          }
+        }
+      }
+
+      setIdeas(nextIdeas);
+      setResult(nextIdeas.length ? "" : fallbackText);
     } catch (err) {
       setResult(
         "I ran into a problem talking to Gemini. Please check your GEMINI_API_KEY and try again.",
@@ -52,6 +119,14 @@ export default function FertilizerPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function selectIdeaByNumber(value) {
+    const n = Number(String(value).trim());
+    if (!Number.isFinite(n)) return;
+    const idx = n - 1;
+    if (idx < 0 || idx >= ideas.length) return;
+    setSelectedIdeaIndex(idx);
   }
 
   return (
@@ -145,22 +220,137 @@ export default function FertilizerPage() {
             </form>
 
             <div className="mt-2 rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-lime-50/60 p-4">
-              <div className="mb-2 flex items-center justify-between text-xs font-semibold text-slate-600">
+              <div className="mb-3 flex items-center justify-between text-xs font-semibold text-slate-600">
                 <span>Plan</span>
                 <span className="rounded-full bg-white/80 px-2 py-0.5 text-[10px] text-lime-700">
                   Gemini · Fertilizer
                 </span>
               </div>
-              <div className="prose prose-sm max-w-none text-slate-900 prose-headings:mt-3 prose-headings:mb-1 prose-p:my-0.5 prose-ul:my-0.5">
-                {result ? (
-                  <pre className="whitespace-pre-wrap break-words text-sm font-normal text-slate-900">
+              <div className="space-y-3 text-sm text-slate-900">
+                {ideas.length ? (
+                  selectedIdeaIndex === null ? (
+                    <div className="space-y-3">
+                      <p className="text-sm text-slate-600">
+                        <span className="font-semibold text-slate-900">Plan ideas</span>{" "}
+                        <span className="text-slate-400">(select a title or enter 1-4)</span>
+                      </p>
+
+                      <div className="flex items-center gap-2">
+                        <input
+                          value={pickNumber}
+                          onChange={(e) => setPickNumber(e.target.value)}
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          placeholder="1"
+                          className="h-9 w-16 rounded-xl border border-slate-200 bg-white/80 px-3 text-sm text-slate-900 outline-none focus:border-lime-400 focus:ring-1 focus:ring-lime-300"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => selectIdeaByNumber(pickNumber)}
+                          className="h-9 rounded-full bg-slate-900 px-4 text-xs font-semibold text-white shadow-sm hover:bg-slate-800"
+                        >
+                          Show
+                        </button>
+                      </div>
+
+                      <div className="space-y-2">
+                        {ideas.map((idea, idx) => (
+                          <button
+                            key={`${idea?.title ?? "idea"}-${idx}`}
+                            type="button"
+                            onClick={() => setSelectedIdeaIndex(idx)}
+                            className="flex w-full items-center justify-between rounded-2xl border border-slate-200 bg-white/70 px-3 py-2 text-left shadow-sm transition hover:border-lime-200 hover:bg-lime-50/60"
+                          >
+                            <div className="min-w-0">
+                              <div className="text-sm font-semibold text-slate-900">
+                                {idx + 1}. {idea?.title || "Untitled idea"}
+                              </div>
+                              {idea?.summary ? (
+                                <div className="mt-0.5 line-clamp-2 text-[12px] text-slate-500">
+                                  {idea.summary}
+                                </div>
+                              ) : null}
+                            </div>
+                            <span className="ml-3 shrink-0 text-xs font-semibold text-lime-700">
+                              View
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                            Idea {selectedIdeaIndex + 1} of {ideas.length}
+                          </div>
+                          <h2 className="mt-1 text-lg font-semibold tracking-tight text-slate-900">
+                            {ideas[selectedIdeaIndex]?.title || "Plan idea"}
+                          </h2>
+                          {ideas[selectedIdeaIndex]?.summary ? (
+                            <p className="mt-1 text-sm text-slate-600">
+                              {ideas[selectedIdeaIndex].summary}
+                            </p>
+                          ) : null}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedIdeaIndex(null)}
+                          className="shrink-0 rounded-full border border-slate-200 bg-white/80 px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                        >
+                          All ideas
+                        </button>
+                      </div>
+
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="rounded-2xl border border-slate-200 bg-white/70 p-3">
+                          <div className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                            Steps
+                          </div>
+                          <ol className="mt-2 list-decimal space-y-1 pl-5 text-[13px] leading-relaxed text-slate-700">
+                            {(ideas[selectedIdeaIndex]?.steps ?? []).map((item, i) => (
+                              <li key={i}>{item}</li>
+                            ))}
+                          </ol>
+                        </div>
+                        <div className="space-y-3">
+                          <div className="rounded-2xl border border-slate-200 bg-white/70 p-3">
+                            <div className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                              Best for
+                            </div>
+                            <ul className="mt-2 list-disc space-y-1 pl-5 text-[13px] leading-relaxed text-slate-700">
+                              {(ideas[selectedIdeaIndex]?.bestFor ?? []).map((item, i) => (
+                                <li key={i}>{item}</li>
+                              ))}
+                            </ul>
+                          </div>
+                          {Array.isArray(ideas[selectedIdeaIndex]?.safetyNotes) &&
+                          ideas[selectedIdeaIndex]?.safetyNotes?.length ? (
+                            <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-3">
+                              <div className="text-xs font-semibold uppercase tracking-wide text-amber-700">
+                                Safety notes
+                              </div>
+                              <ul className="mt-2 list-disc space-y-1 pl-5 text-[13px] leading-relaxed text-amber-800">
+                                {ideas[selectedIdeaIndex].safetyNotes.map((item, i) => (
+                                  <li key={i}>{item}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                  )
+                ) : result ? (
+                  <div className="whitespace-pre-wrap break-words text-slate-700 leading-relaxed">
                     {result}
-                  </pre>
+                  </div>
                 ) : (
                   <p className="text-sm text-slate-500">Results show here.</p>
                 )}
               </div>
-              <p className="mt-2 text-[10px] text-slate-400">Powered by Gemini.</p>
+              <p className="mt-3 text-[10px] text-slate-400">Powered by Gemini.</p>
             </div>
           </CardBody>
         </Card>

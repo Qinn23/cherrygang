@@ -134,20 +134,40 @@ ${schemaHint}
       const parsed = JSON.parse(jsonStr);
       const recipes = Array.isArray(parsed?.recipes) ? parsed.recipes : null;
       if (recipes && recipes.length) {
-        // Filter out incomplete recipes (missing required fields)
-        const validRecipes = recipes.filter(
-          (r) => r?.title && Array.isArray(r?.ingredients) && Array.isArray(r?.steps)
-        );
+        // Filter out incomplete recipes (missing required fields) or add defaults
+        const validRecipes = recipes.filter((r) => r?.title).map((r) => ({
+          title: r.title || "Untitled Recipe",
+          why: Array.isArray(r?.why) ? r.why : ["Uses available ingredients"],
+          ingredients: Array.isArray(r?.ingredients) ? r.ingredients : [],
+          steps: Array.isArray(r?.steps) ? r.steps : []
+        })).filter((r) => r.title && (r.ingredients.length > 0 || r.steps.length > 0));
         if (validRecipes.length) {
           return res.status(200).json({ recipes: validRecipes, text: "" });
         }
       }
     } catch (parseErr) {
       console.error('JSON parse error:', parseErr.message);
-      // Fall through to return text
+      console.error('Failed to parse:', cleaned.substring(0, 200));
+      // Fall through to return text with recipes array if possible
     }
 
-    return res.status(200).json({ text: cleaned });
+    // Last attempt: try to extract recipes from the JSON string even if parsing fails
+    try {
+      const parsed = JSON.parse(cleaned);
+      if (Array.isArray(parsed?.recipes) && parsed.recipes.length) {
+        const recipes = parsed.recipes.map((r) => ({
+          title: r?.title || "Untitled Recipe",
+          why: Array.isArray(r?.why) ? r.why : ["Uses available ingredients"],
+          ingredients: Array.isArray(r?.ingredients) ? r.ingredients : [],
+          steps: Array.isArray(r?.steps) ? r.steps : []
+        }));
+        return res.status(200).json({ recipes, text: "" });
+      }
+    } catch (e) {
+      // Silently fail and return as text
+    }
+
+    return res.status(200).json({ recipes: [], text: cleaned });
   } catch (error) {
     console.error('Recipe API error:', error);
     return res.status(500).json({

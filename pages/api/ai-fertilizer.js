@@ -4,7 +4,7 @@
 //   householdDescription?: string,
 //   gardenDescription?: string
 // }
-// Returns { text }
+// Returns { ideas?: Array<{ title: string, summary?: string, steps?: string[], bestFor?: string[], safetyNotes?: string[] }>, text?: string }
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("Allow", ["POST"]);
@@ -24,6 +24,27 @@ export default async function handler(req, res) {
     gardenDescription = "",
   } = req.body ?? {};
 
+  const schemaHint = `Return ONLY valid JSON (no markdown, no code fences) with this exact shape:
+{
+  "ideas": [
+    {
+      "title": "string",
+      "summary": "string",
+      "steps": ["string", "string"],
+      "bestFor": ["string", "string"],
+      "safetyNotes": ["string", "string"]
+    }
+  ]
+}
+Rules:
+- Always return exactly 4 ideas.
+- Keep titles short (max 8 words).
+- "summary" should be one short sentence (max 12 words).
+- "steps" must be 3–4 concise steps.
+- "bestFor" should list 1–3 plant settings.
+- "safetyNotes" should list 1–3 cautions when needed; use an empty array if none.
+`;
+
   const prompt = `
 You are an expert in household composting and DIY fertilizer for a family food-waste app.
 
@@ -37,21 +58,11 @@ Outdoor / plant situation (balcony pots, garden size, indoor plants, etc.):
 ${gardenDescription || "(not provided)"}
 
 Your task:
-- First, decide whether each major item is best for:
-  - "compost only"
-  - "liquid fertilizer / tea"
-  - "avoid / trash" (if unsafe at home scale)
-- Then propose 2–3 practical ways to use this waste:
-  - For each idea, include:
-    - A short title
-    - A bullet list of steps (3–6 steps max)
-    - Best for: e.g. "balcony pots", "indoor plants", "vegetable garden"
-- Include any important safety notes (e.g. meat/dairy, rats, bad smells, pests, raw manure).
+- Propose 4 practical ways to use this waste.
+- Focus on low-odor, low-mess, household-safe methods.
+- Include any important safety notes (e.g. meat/dairy, pests, bad smells).
 
-Format:
-- Use clear headings for each idea.
-- Use short bullet lists for steps.
-- Keep the answer under about 500 words and very practical.
+${schemaHint}
 `;
 
   const body = {
@@ -62,8 +73,9 @@ Format:
       },
     ],
     generationConfig: {
-      temperature: 0.7,
-      maxOutputTokens: 768,
+      temperature: 0.6,
+      maxOutputTokens: 2048,
+      responseMimeType: "application/json",
     },
   };
 
@@ -92,7 +104,61 @@ Format:
     const text =
       data?.candidates?.[0]?.content?.parts?.map((p) => p.text).join("") ?? "";
 
-    return res.status(200).json({ text });
+    const cleaned = String(text)
+      .trim()
+      .replace(/^```(?:json)?/i, "")
+      .replace(/```$/i, "")
+      .trim();
+
+    const tryRepairJson = (raw) => {
+      let jsonStr = raw.trim();
+      if (!jsonStr.endsWith("}")) {
+        const lastBrace = jsonStr.lastIndexOf("}");
+        if (lastBrace > -1) {
+          jsonStr = jsonStr.slice(0, lastBrace + 1);
+        }
+      }
+
+      const openBraces = (jsonStr.match(/{/g) || []).length;
+      const closeBraces = (jsonStr.match(/}/g) || []).length;
+      const openBrackets = (jsonStr.match(/\[/g) || []).length;
+      const closeBrackets = (jsonStr.match(/\]/g) || []).length;
+
+      for (let i = 0; i < openBrackets - closeBrackets; i++) jsonStr += "]";
+      for (let i = 0; i < openBraces - closeBraces; i++) jsonStr += "}";
+
+      return jsonStr;
+    };
+
+    try {
+      let parsed;
+      try {
+        parsed = JSON.parse(cleaned);
+      } catch (firstErr) {
+        parsed = JSON.parse(tryRepairJson(cleaned));
+      }
+      const ideas = Array.isArray(parsed?.ideas) ? parsed.ideas : null;
+      if (ideas && ideas.length) {
+        const normalized = ideas
+          .filter((i) => i?.title)
+          .map((i) => ({
+            title: i.title,
+            summary: i?.summary || "",
+            steps: Array.isArray(i?.steps) ? i.steps : [],
+            bestFor: Array.isArray(i?.bestFor) ? i.bestFor : [],
+            safetyNotes: Array.isArray(i?.safetyNotes) ? i.safetyNotes : [],
+          }))
+          .filter((i) => i.title && i.steps.length);
+
+        if (normalized.length) {
+          return res.status(200).json({ ideas: normalized, text: "" });
+        }
+      }
+    } catch (parseErr) {
+      // Fall through to return text
+    }
+
+    return res.status(200).json({ text: cleaned });
   } catch (error) {
     return res.status(500).json({
       error: "Failed to call Gemini API",
