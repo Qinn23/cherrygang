@@ -12,11 +12,18 @@ const dmSans = DM_Sans({
 
 export default function LoginPage() {
   const router = useRouter();
+  const { mode } = router.query;
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [isSignup, setIsSignup] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
+
+   React.useEffect(() => {
+  if (mode === "signup") {
+    setIsSignup(true);
+  }
+}, [mode]);
 
   async function handleSubmit(e) {
     e.preventDefault();
