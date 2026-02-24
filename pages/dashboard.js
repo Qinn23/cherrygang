@@ -238,6 +238,16 @@ export default function Home() {
   const expired = getExpired(ingredients, now);
   const expiringSoon = getExpiringSoon(ingredients, expiringWindowDays, now);
 
+  // Calculate total quantity
+function getTotalQuantity(items) {
+  return items.reduce((sum, item) => {
+    const num = parseFloat(item.qty);
+    return sum + (isNaN(num) ? 1 : num);
+  }, 0);
+}
+
+const expiredQty = getTotalQuantity(expired);
+
   const alerts = [
     ...expired.map((i) => ({
       id: `expired-${i.name}`,
@@ -362,17 +372,11 @@ const pantryHealthSubtext =
               href="/add-food"
               className="mt-1 flex items-center justify-between rounded-lg px-3 py-2 text-sm text-gray-900 hover:bg-macaron-mint/20 transition-colors"
             >
-              <span>Add food</span>
+              <span>Food Management</span>
             </Link>
             <Link
               href="/recipes"
               className="flex items-center justify-between rounded-lg px-3 py-2 text-sm text-gray-900 hover:bg-macaron-sky/20 transition-colors"
-            >
-              <span>Recipes</span>
-            </Link>
-            <Link
-              href="/ai-recipes"
-              className="flex items-center justify-between rounded-lg px-3 py-2 text-sm text-gray-900 hover:bg-macaron-peach/20 transition-colors"
             >
               <span>Smart Meal Generator</span>
             </Link>
@@ -447,15 +451,6 @@ const pantryHealthSubtext =
                   )} days`}
                   accent={expired.length ? "rose" : "amber"}
                   icon={iconClock()}
-                />
-              </Link>
-              <Link href="/suggested-recipes" className="block">
-                <DashboardStatCard
-                  title="Suggested recipes"
-                  value={`${recipes.length}`}
-                  subtext="Based on what you have + what expires soon"
-                  accent="sky"
-                  icon={iconSpark()}
                 />
               </Link>
               <Link href="/pantry-health" className="block">
