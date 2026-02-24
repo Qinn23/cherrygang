@@ -1,5 +1,4 @@
-import { auth } from "@/firebase";
-
+const adminAuth = require("../../lib/firebaseAdmin"); // Admin SDK
 import {
   createHousehold,
   generateInviteCode,
@@ -7,11 +6,11 @@ import {
   getHousehold,
   getHouseholdMembers,
   getHouseholdInvites,
-} from "@/lib/households";
+} from "../../lib/households";
 
 /**
  * API route for household management
- * 
+ *
  * POST /api/household
  *   ?action=create -> Create new household (requires: name)
  *   ?action=generateCode -> Generate invite code (requires: householdId)
@@ -25,10 +24,13 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { action } = req.query;
-
   try {
-    // Get current user (simplified - in prod use proper auth middleware)
+    console.log("req.body:", req.body);
+    const { action } = req.query;
+
+    // ----------------------------
+    // VERIFY TOKEN WITH ADMIN SDK
+    // ----------------------------
     const authHeader = req.headers.authorization;
     if (!authHeader) {
       return res.status(401).json({ error: "Unauthorized" });
@@ -36,51 +38,59 @@ export default async function handler(req, res) {
 
     const token = authHeader.split(" ")[1];
     let uid;
+
     try {
-      const decodedToken = await auth.verifyIdToken(token);
+      const decodedToken = await adminAuth.verifyIdToken(token);
       uid = decodedToken.uid;
     } catch (err) {
+      console.error("Token verification failed:", err);
       return res.status(401).json({ error: "Invalid token" });
     }
 
+    // ----------------------------
+    // ACTION ROUTING
+    // ----------------------------
     switch (action) {
       case "create":
-        return handleCreateHousehold(req, res, uid);
+        return await handleCreateHousehold(req, res, uid);
       case "generateCode":
-        return handleGenerateCode(req, res, uid);
+        return await handleGenerateCode(req, res, uid);
       case "acceptCode":
-        return handleAcceptCode(req, res, uid);
+        return await handleAcceptCode(req, res, uid);
       case "getHousehold":
-        return handleGetHousehold(req, res);
+        return await handleGetHousehold(req, res);
       case "getMembers":
-        return handleGetMembers(req, res);
+        return await handleGetMembers(req, res);
       case "getInvites":
-        return handleGetInvites(req, res, uid);
+        return await handleGetInvites(req, res, uid);
       default:
         return res.status(400).json({ error: "Invalid action" });
     }
   } catch (error) {
     console.error("Household API error:", error);
-    return res.status(500).json({ error: error.message });
+    return res.status(500).json({ 
+      error: error.message || "Internal server error",
+      success: false 
+    });
   }
 }
 
+// ------------------------
+// HANDLER FUNCTIONS
+// ------------------------
+
 async function handleCreateHousehold(req, res, uid) {
   const { name } = req.body;
-  if (!name) {
-    return res.status(400).json({ error: "Missing name" });
-  }
+  if (!name) return res.status(400).json({ error: "Missing name" });
+
   const result = await createHousehold({ name, ownerUid: uid });
   return res.status(result.success ? 200 : 500).json(result);
 }
 
 async function handleGenerateCode(req, res, uid) {
   const { householdId } = req.body;
-  if (!householdId) {
-    return res.status(400).json({ error: "Missing householdId" });
-  }
+  if (!householdId) return res.status(400).json({ error: "Missing householdId" });
 
-  // Verify user is a member of this household
   const household = await getHousehold(householdId);
   if (!household || !household.members.some(m => m.uid === uid)) {
     return res.status(403).json({ error: "Not a member of this household" });
@@ -92,40 +102,34 @@ async function handleGenerateCode(req, res, uid) {
 
 async function handleAcceptCode(req, res, uid) {
   const { code } = req.body;
-  if (!code) {
-    return res.status(400).json({ error: "Missing code" });
-  }
+  if (!code) return res.status(400).json({ error: "Missing code" });
+
   const result = await acceptInviteCode(code, uid);
-  return res.status(result.success ? 200 : 500).json(result);
+  return res.status(result.success ? 200 : 400).json(result);
 }
 
 async function handleGetHousehold(req, res) {
   const { householdId } = req.body;
-  if (!householdId) {
-    return res.status(400).json({ error: "Missing householdId" });
-  }
+  if (!householdId) return res.status(400).json({ error: "Missing householdId" });
+
   const household = await getHousehold(householdId);
-  return res
-    .status(household ? 200 : 404)
-    .json(household ? { success: true, household } : { error: "Household not found" });
+  return res.status(household ? 200 : 404).json(
+    household ? { success: true, household } : { error: "Household not found" }
+  );
 }
 
 async function handleGetMembers(req, res) {
   const { householdId } = req.body;
-  if (!householdId) {
-    return res.status(400).json({ error: "Missing householdId" });
-  }
+  if (!householdId) return res.status(400).json({ error: "Missing householdId" });
+
   const members = await getHouseholdMembers(householdId);
   return res.status(200).json({ success: true, members });
 }
 
 async function handleGetInvites(req, res, uid) {
   const { householdId } = req.body;
-  if (!householdId) {
-    return res.status(400).json({ error: "Missing householdId" });
-  }
+  if (!householdId) return res.status(400).json({ error: "Missing householdId" });
 
-  // Verify user is owner or member
   const household = await getHousehold(householdId);
   if (!household || !household.members.some(m => m.uid === uid)) {
     return res.status(403).json({ error: "Not a member of this household" });

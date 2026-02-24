@@ -4,6 +4,7 @@ import { useProfiles } from "@/components/ProfilesContext";
 import { useAuth } from "@/components/AuthContext";
 import { getOrCreateHouseholdInviteCode } from "@/lib/households";
 import Link from "next/link";
+import { auth } from "@/firebase";
 
 function Field({ label, children, hint }) {
   return (
@@ -84,6 +85,7 @@ export default function ProfilesPage() {
   const [codeLoading, setCodeLoading] = React.useState(false);
   const [joinCode, setJoinCode] = React.useState("");
   const [joinLoading, setJoinLoading] = React.useState(false);
+  const [joinError, setJoinError] = React.useState("");
 
   React.useEffect(() => {
     async function fetchProfiles() {
@@ -139,42 +141,78 @@ export default function ProfilesPage() {
     }
   }
 
-   async function joinHousehold() {
-    if (!joinCode.trim()) return alert("Please enter a code.");
+ async function handleJoinHousehold() {
+  if (!joinCode) {
+    setJoinError("Please enter an invite code");
+    return;
+  }
 
-    if (household?.inviteCode === joinCode.trim()) {
-      return alert("You are already in this household.");
-    }
+  setJoinLoading(true);
+  setJoinError("");
 
-    setJoinLoading(true);
-    try {
-      const token = await auth.currentUser.getIdToken();
+  try {
+    // 1️⃣ Call API to accept the invite
+    const result = await joinHousehold(joinCode);
+    console.log("Join result:", result);
 
-      const res = await fetch("/api/household?action=acceptCode", {
+    if (result.success) {
+      setJoinCode("");
+      setJoinError("");
+      alert("Joined household successfully!");
+
+      // 2️⃣ Fetch the updated household from API
+      const idToken = await auth.currentUser.getIdToken(true);
+      const res = await fetch("/api/household?action=getHousehold", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${idToken}`,
         },
-        body: JSON.stringify({ code: joinCode.trim() }),
+        body: JSON.stringify({ householdId: result.householdId }),
       });
+      const data = await res.json();
 
-      const result = await res.json();
-
-      if (res.ok && result.success) {
-        alert("Successfully joined the household!");
-        setJoinCode("");
-        // Optionally refresh household context here
-      } else {
-        alert("Failed to join household: " + (result.error || "Unknown error"));
+      if (data.success && data.household) {
+        // 3️⃣ Reload all profiles from this updated household
+        const updatedProfiles = await loadProfiles(data.household.id);
+        setProfiles(updatedProfiles); // <-- instant UI update
       }
-    } catch (err) {
-      console.error(err);
-      alert("Error joining household: " + err.message);
-    } finally {
-      setJoinLoading(false);
+    } else {
+      setJoinError(result.error || "Failed to join household");
     }
+  } catch (err) {
+    console.error("Error joining household:", err);
+    setJoinError(err.message || "An error occurred");
+  } finally {
+    setJoinLoading(false);
   }
+}
+
+  async function joinHousehold(code) {
+  const user = auth.currentUser;
+  if (!user) throw new Error("You must be logged in");
+
+  const idToken = await user.getIdToken(true);
+
+  const res = await fetch("/api/household?action=acceptCode", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${idToken}`,
+    },
+    body: JSON.stringify({ code }),
+  });
+
+  const result = await res.json();
+
+  // Optionally return the code and user id for optimistic update
+  if (result.success) {
+    // Add uid to the returned object to update UI immediately
+    result.uid = user.uid;
+  }
+
+  return result;
+}
 
   function copyToClipboard() {
     navigator.clipboard.writeText(inviteCode);
@@ -188,40 +226,50 @@ export default function ProfilesPage() {
           <p className="text-sm font-medium text-zinc-700">Smart Pantry</p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">Family profiles</h1>
         </div>
-        <div className="flex items-center gap-3">
-          <Link
-            href="/"
-            className="rounded-full bg-zinc-500/10 px-4 py-2 text-sm font-semibold text-zinc-800 ring-1 ring-inset ring-zinc-500/15 hover:bg-zinc-500/15"
-          >
-            Back to dashboard
-          </Link>
+        <div className="flex flex-col items-end gap-3">
+          <div className="flex items-center gap-3">
+            <Link
+              href="/"
+              className="rounded-full bg-zinc-500/10 px-4 py-2 text-sm font-semibold text-zinc-800 ring-1 ring-inset ring-zinc-500/15 hover:bg-zinc-500/15"
+            >
+              Back to dashboard
+            </Link>
 
-          <button
-            type="button"
-            onClick={generateAndShowCode}
-            disabled={codeLoading}
-            className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60"
-          >
-            {codeLoading ? "…" : "Generate code"}
-          </button>
-
-          {/* Join Household */}
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value)}
-              placeholder="Enter invite code"
-              className="w-32 rounded-xl border border-amber-200/70 px-3 py-2 text-sm text-zinc-900 shadow-sm outline-none"
-            />
             <button
               type="button"
-              onClick={joinHousehold}
-              disabled={joinLoading}
-              className="rounded-full bg-amber-500 px-3 py-2 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-60"
+              onClick={generateAndShowCode}
+              disabled={codeLoading}
+              className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-60"
             >
-              {joinLoading ? "…" : "Join Household"}
+              {codeLoading ? "…" : "Generate code"}
             </button>
+          </div>
+
+          {/* Join Household */}
+          <div className="flex flex-col items-end gap-2">
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={joinCode}
+                onChange={(e) => {
+                  setJoinCode(e.target.value);
+                  setJoinError("");
+                }}
+                placeholder="Enter invite code"
+                className="w-40 rounded-xl border border-amber-200/70 px-3 py-2 text-sm text-zinc-900 shadow-sm outline-none"
+              />
+              <button
+                type="button"
+                onClick={() => handleJoinHousehold()}
+                disabled={joinLoading}
+                className="rounded-full bg-amber-500 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-600 disabled:opacity-60"
+              >
+                {joinLoading ? "…" : "Join Household"}
+              </button>
+            </div>
+            {joinError && (
+              <p className="text-xs text-rose-600 font-medium">{joinError}</p>
+            )}
           </div>
         </div>
       </div>

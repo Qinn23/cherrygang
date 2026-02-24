@@ -20,7 +20,7 @@ export async function loadProfiles(householdId) {
 export function subscribeProfiles(callback) {
   const unsubscribe = onSnapshot(collection(db, "profiles"), (snapshot) => {
     const profiles = snapshot.docs.map(doc => ({
-      id: doc.id,   // <-- include this
+      id: doc.id,   
       ...doc.data()
     }));
     callback(profiles);
@@ -57,7 +57,7 @@ export async function deleteProfile(id) {
 // Helpers
 // ------------------------------
 export function normalizeToken(s) {
-  return String(s ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+  return String(s ?? "").trim().toUpperCase().replace(/\s+/g, " ");
 }
 
 export function splitCsv(s) {
