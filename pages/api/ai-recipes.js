@@ -116,55 +116,58 @@ ${schemaHint}
       .replace(/```$/i, "")
       .trim();
 
-    try {
-      // Try to fix incomplete JSON by closing arrays/objects if needed
-      let jsonStr = cleaned;
-      if (jsonStr.includes('"recipes"') && !jsonStr.endsWith("}")) {
-        // Count open vs closed braces/brackets
-        const openBraces = (jsonStr.match(/{/g) || []).length;
-        const closeBraces = (jsonStr.match(/}/g) || []).length;
-        const openBrackets = (jsonStr.match(/\[/g) || []).length;
-        const closeBrackets = (jsonStr.match(/\]/g) || []).length;
-        
-        // Close incomplete arrays/objects
-        for (let i = 0; i < openBrackets - closeBrackets; i++) jsonStr += "]";
-        for (let i = 0; i < openBraces - closeBraces; i++) jsonStr += "}";
-      }
-
-      const parsed = JSON.parse(jsonStr);
-      const recipes = Array.isArray(parsed?.recipes) ? parsed.recipes : null;
-      if (recipes && recipes.length) {
-        // Filter out incomplete recipes (missing required fields) or add defaults
-        const validRecipes = recipes.filter((r) => r?.title).map((r) => ({
-          title: r.title || "Untitled Recipe",
-          why: Array.isArray(r?.why) ? r.why : ["Uses available ingredients"],
-          ingredients: Array.isArray(r?.ingredients) ? r.ingredients : [],
-          steps: Array.isArray(r?.steps) ? r.steps : []
-        })).filter((r) => r.title && (r.ingredients.length > 0 || r.steps.length > 0));
-        if (validRecipes.length) {
-          return res.status(200).json({ recipes: validRecipes, text: "" });
-        }
-      }
-    } catch (parseErr) {
-      console.error('JSON parse error:', parseErr.message);
-      console.error('Failed to parse:', cleaned.substring(0, 200));
-      // Fall through to return text with recipes array if possible
-    }
-
-    // Last attempt: try to extract recipes from the JSON string even if parsing fails
-    try {
-      const parsed = JSON.parse(cleaned);
-      if (Array.isArray(parsed?.recipes) && parsed.recipes.length) {
-        const recipes = parsed.recipes.map((r) => ({
+    const normalizeRecipes = (value) => {
+      if (!Array.isArray(value)) return [];
+      return value
+        .filter((r) => r?.title)
+        .map((r) => ({
           title: r?.title || "Untitled Recipe",
           why: Array.isArray(r?.why) ? r.why : ["Uses available ingredients"],
           ingredients: Array.isArray(r?.ingredients) ? r.ingredients : [],
-          steps: Array.isArray(r?.steps) ? r.steps : []
-        }));
-        return res.status(200).json({ recipes, text: "" });
+          steps: Array.isArray(r?.steps) ? r.steps : [],
+        }))
+        .filter((r) => r.title && (r.ingredients.length > 0 || r.steps.length > 0));
+    };
+
+    const repairJson = (raw) => {
+      let jsonStr = String(raw ?? "").trim();
+
+      const firstBrace = jsonStr.indexOf("{");
+      const lastBrace = jsonStr.lastIndexOf("}");
+      if (firstBrace >= 0 && lastBrace > firstBrace) {
+        jsonStr = jsonStr.slice(firstBrace, lastBrace + 1);
       }
-    } catch (e) {
-      // Silently fail and return as text
+
+      jsonStr = jsonStr.replace(/,\s*([}\]])/g, "$1");
+
+      const openBraces = (jsonStr.match(/{/g) || []).length;
+      const closeBraces = (jsonStr.match(/}/g) || []).length;
+      const openBrackets = (jsonStr.match(/\[/g) || []).length;
+      const closeBrackets = (jsonStr.match(/\]/g) || []).length;
+
+      for (let i = 0; i < openBrackets - closeBrackets; i++) jsonStr += "]";
+      for (let i = 0; i < openBraces - closeBraces; i++) jsonStr += "}";
+
+      return jsonStr;
+    };
+
+    const parseRecipesFromText = (raw) => {
+      const attempts = [String(raw ?? ""), repairJson(raw)];
+      for (const candidate of attempts) {
+        try {
+          const parsed = JSON.parse(candidate);
+          const recipes = normalizeRecipes(parsed?.recipes);
+          if (recipes.length) return recipes;
+        } catch {
+          // Continue to next strategy.
+        }
+      }
+      return [];
+    };
+
+    const parsedRecipes = parseRecipesFromText(cleaned);
+    if (parsedRecipes.length) {
+      return res.status(200).json({ recipes: parsedRecipes, text: "" });
     }
 
     return res.status(200).json({ recipes: [], text: cleaned });

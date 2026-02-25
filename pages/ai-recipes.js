@@ -65,6 +65,54 @@ export default function AiRecipesPage() {
       let nextRecipes = Array.isArray(data.recipes) ? data.recipes : [];
       let fallbackText = data.text ?? "";
 
+      const normalizeRecipes = (value) => {
+        if (!Array.isArray(value)) return [];
+        return value
+          .filter((r) => r?.title)
+          .map((r) => ({
+            title: r?.title || "Untitled Recipe",
+            why: Array.isArray(r?.why) ? r.why : [],
+            ingredients: Array.isArray(r?.ingredients) ? r.ingredients : [],
+            steps: Array.isArray(r?.steps) ? r.steps : [],
+          }));
+      };
+
+      const repairJson = (raw) => {
+        let jsonStr = String(raw ?? "").trim();
+        const firstBrace = jsonStr.indexOf("{");
+        const lastBrace = jsonStr.lastIndexOf("}");
+
+        if (firstBrace >= 0 && lastBrace > firstBrace) {
+          jsonStr = jsonStr.slice(firstBrace, lastBrace + 1);
+        }
+
+        jsonStr = jsonStr.replace(/,\s*([}\]])/g, "$1");
+
+        const openBraces = (jsonStr.match(/{/g) || []).length;
+        const closeBraces = (jsonStr.match(/}/g) || []).length;
+        const openBrackets = (jsonStr.match(/\[/g) || []).length;
+        const closeBrackets = (jsonStr.match(/\]/g) || []).length;
+
+        for (let i = 0; i < openBrackets - closeBrackets; i++) jsonStr += "]";
+        for (let i = 0; i < openBraces - closeBraces; i++) jsonStr += "}";
+
+        return jsonStr;
+      };
+
+      const parseRecipesFromText = (raw) => {
+        const attempts = [String(raw ?? ""), repairJson(raw)];
+        for (const candidate of attempts) {
+          try {
+            const parsed = JSON.parse(candidate);
+            const parsedRecipes = normalizeRecipes(parsed?.recipes);
+            if (parsedRecipes.length) return parsedRecipes;
+          } catch {
+            // try next candidate
+          }
+        }
+        return [];
+      };
+
       // If the server didn't manage to structure it, try to parse JSON here on the client.
       if (!nextRecipes.length && typeof fallbackText === "string" && fallbackText.trim()) {
         const cleaned = fallbackText
@@ -74,41 +122,10 @@ export default function AiRecipesPage() {
           .trim();
 
         if (cleaned.startsWith("{") && cleaned.includes('"recipes"')) {
-          try {
-            // First attempt: fix incomplete JSON by closing arrays/objects if needed
-            let jsonStr = cleaned;
-            
-            if (!jsonStr.trim().endsWith("}")) {
-              // Count brackets/braces to close them
-              const openBraces = (jsonStr.match(/{/g) || []).length;
-              const closeBraces = (jsonStr.match(/}/g) || []).length;
-              const openBrackets = (jsonStr.match(/\[/g) || []).length;
-              const closeBrackets = (jsonStr.match(/\]/g) || []).length;
-              
-              // Close incomplete structures
-              for (let i = 0; i < openBrackets - closeBrackets; i++) jsonStr += "]";
-              for (let i = 0; i < openBraces - closeBraces; i++) jsonStr += "}";
-            }
-
-            const parsed = JSON.parse(jsonStr);
-            if (Array.isArray(parsed?.recipes)) {
-              // Be lenient: accept recipes with at least a title
-              const recipes = parsed.recipes
-                .filter((r) => r?.title)
-                .map((r) => ({
-                  title: r.title || "Untitled Recipe",
-                  why: Array.isArray(r?.why) ? r.why : [],
-                  ingredients: Array.isArray(r?.ingredients) ? r.ingredients : [],
-                  steps: Array.isArray(r?.steps) ? r.steps : []
-                }));
-              if (recipes.length) {
-                nextRecipes = recipes;
-                fallbackText = "";
-              }
-            }
-          } catch (parseErr) {
-            // If parsing still fails, just show the raw text
-            console.warn('Could not parse recipe JSON. Showing raw output:', parseErr.message);
+          const parsedRecipes = parseRecipesFromText(cleaned);
+          if (parsedRecipes.length) {
+            nextRecipes = parsedRecipes;
+            fallbackText = "";
           }
         }
       }
