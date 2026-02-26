@@ -63,7 +63,7 @@ export default function WastedFoodPage() {
         <div className="mb-6 flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-semibold text-macaron-lavender-dark">
-              Expired Food
+              Wasted Food
             </h1>
             <p className="mt-1 text-xs text-macaron-lavender-dark">
               Items past their expiry date in your pantry
@@ -78,7 +78,7 @@ export default function WastedFoodPage() {
         {expiredFoods.length > 0 ? (
           <div className="rounded-2xl border-2 border-red-300 bg-white/90 p-5 shadow-macaron-md">
             <h2 className="text-sm font-semibold text-macaron-lavender-dark">
-              Expired Items List
+              Wasted Foods List
             </h2>
             <ul className="mt-2 max-h-80 overflow-y-auto divide-y divide-gray-200 text-xs">
               {expiredFoods.map(food => (
