@@ -4,33 +4,7 @@ import { useAuth } from "@/components/AuthContext";
 import { db } from "@/firebase";
 import { collection, addDoc, serverTimestamp, getDocs } from "firebase/firestore";
 
-const OFFICIAL_ACCOUNT = "Cherry Gang — Official";
-const OFFICIAL_POSTS = [
-  {
-    id: "official-1",
-    author: OFFICIAL_ACCOUNT,
-    content: "Use pomelo skin to wipe kitchen counters — it picks up dirt and leaves a fresh scent.",
-    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 2,
-    reactions: { good: 12, useless: 1 },
-    media: [{ type: "image", url: "https://www.vietworldkitchen.com/wp-content/uploads/2018/12/candied-grapefruit-peel-trimmed.jpg" }],
-  },
-  {
-    id: "official-2",
-    author: OFFICIAL_ACCOUNT,
-    content: "Wipe car windows with an expired potato to reduce water beading — works surprisingly well.",
-    createdAt: Date.now() - 1000 * 60 * 60 * 10,
-    reactions: { good: 8, useless: 0 },
-    media: [{ type: "video", url: "https://youtu.be/Nr0LYfWJnr0?si=2gSjliROu5429XEG" }],
-  },
-  {
-    id: "official-3",
-    author: OFFICIAL_ACCOUNT,
-    content: "Use a damp pomelo rind to shine wooden furniture — natural and chemical-free.",
-    createdAt: Date.now() - 1000 * 60 * 30,
-    reactions: { good: 3, useless: 0 },
-    media: [{ type: "image", url: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=800&q=80" }],
-  },
-];
+
 
 function formatTime(ts) {
   try { return new Date(ts).toLocaleString(); } catch { return ""; }
@@ -52,18 +26,29 @@ export default function Community() {
   const [posting, setPosting] = useState(false); // disables button while posting
 
   // Load posts from Firebase
-  useEffect(() => {
-    async function loadPosts() {
-      try {
-        const snapshot = await getDocs(collection(db, "community_posts"));
-        const firebasePosts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setPosts(firebasePosts.length ? firebasePosts : OFFICIAL_POSTS);
-      } catch {
-        setPosts(OFFICIAL_POSTS);
-      }
+ useEffect(() => {
+  async function loadPosts() {
+    try {
+      const snapshot = await getDocs(collection(db, "community_posts"));
+
+      const firebasePosts = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          createdAt: data.createdAt?.toMillis?.() || Date.now(), // Convert Firestore timestamp to JS timestamp, fallback to now
+        };
+      });
+
+      setPosts(firebasePosts);
+
+    } catch (err) {
+      console.error("Error loading posts:", err);
     }
-    loadPosts();
-  }, []);
+  }
+
+  loadPosts();
+}, []);
 
   const handleFileChange = (e) => {
     const files = e.target.files ? Array.from(e.target.files) : [];
@@ -140,6 +125,7 @@ export default function Community() {
     <div className="mx-auto max-w-3xl px-4 py-8">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold">Community Life Hacks — Feed</h1>
+       
         <Link href="/" className="text-sm text-gray-600 underline">Back</Link>
       </div>
 
@@ -168,7 +154,20 @@ export default function Community() {
               <input type="file" multiple accept="image/*,video/*" className="hidden" onChange={handleFileChange} />
             </label>
           </div>
-
+{/* URL input field */}
+{(submitMediaType === "url-image" || submitMediaType === "url-video") && (
+  <input
+    type="text"
+    placeholder={
+      submitMediaType === "url-image"
+        ? "Paste image URL..."
+        : "Paste video URL..."
+    }
+    value={submitMediaUrl}
+    onChange={e => setSubmitMediaUrl(e.target.value)}
+    className="rounded border px-3 py-2 text-sm w-full"
+  />
+)}
           {submitFilesDataUrls.length > 0 && (
             <div className="grid grid-cols-2 gap-2 mt-2">
               {submitFilesDataUrls.map((m, i) => (
@@ -189,7 +188,12 @@ export default function Community() {
       </section>
 
       <div className="space-y-6">
-        {posts.slice().sort((a,b)=> (b.createdAt||0) - (a.createdAt||0)).map(p => (
+
+  {posts.length === 0 && (
+    <p className="text-center text-gray-400">No posts yet.</p>
+  )}
+
+  {posts.slice().sort((a,b)=> (b.createdAt||0) - (a.createdAt||0)).map(p => (
           <article key={p.id} className="rounded-lg border bg-white p-4 shadow-sm">
             <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
