@@ -6,7 +6,6 @@ import {
   linkProfileToHousehold,
   loadProfiles,
 } from "@/lib/profiles";
-import { ensurePersonalHousehold } from "@/lib/households";
 import { subscribeToAuthState } from "@/lib/auth";
 
 const AuthContext = React.createContext(null);
