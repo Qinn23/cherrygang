@@ -18,6 +18,7 @@ import {
 export default function AddFoodPage() {
   const [foods, setFoods] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState("add");
 
   // 🔥 Fetch foods from Firestore
   useEffect(() => {
@@ -108,19 +109,50 @@ export default function AddFoodPage() {
         </header>
 
         {/* Main Content */}
-        <div className="max-w-4xl mx-auto space-y-8">
-          {/* Add Food Form */}
-          <AddFoodForm
-            onSubmit={handleAddFood}
-            isLoading={isLoading}
-          />
+        <div className="max-w-4xl mx-auto">
+          {/* Tabs */}
+          <div className="flex gap-2 mb-8 border-b border-orange-200">
+            <button
+              onClick={() => setActiveTab("add")}
+              className={`px-6 py-3 font-semibold transition-all duration-200 ${
+                activeTab === "add"
+                  ? "text-orange-600 border-b-4 border-orange-500 bg-orange-50"
+                  : "text-gray-600 hover:text-orange-500"
+              }`}
+            >
+              ➕ Add Food
+            </button>
+            <button
+              onClick={() => setActiveTab("inventory")}
+              className={`px-6 py-3 font-semibold transition-all duration-200 ${
+                activeTab === "inventory"
+                  ? "text-orange-600 border-b-4 border-orange-500 bg-orange-50"
+                  : "text-gray-600 hover:text-orange-500"
+              }`}
+            >
+              📦 Inventory ({foods.length})
+            </button>
+          </div>
 
-          {/* Food List */}
-          <FoodInventory
-            foods={foods}
-            onDelete={handleDeleteFood}
-            isLoading={isLoading}
-          />
+          {/* Tab Content */}
+          {activeTab === "add" && (
+            <div className="fade-in">
+              <AddFoodForm
+                onSubmit={handleAddFood}
+                isLoading={isLoading}
+              />
+            </div>
+          )}
+
+          {activeTab === "inventory" && (
+            <div className="fade-in">
+              <FoodInventory
+                foods={foods}
+                onDelete={handleDeleteFood}
+                isLoading={isLoading}
+              />
+            </div>
+          )}
         </div>
       </div>
     </>

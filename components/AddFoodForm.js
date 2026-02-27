@@ -124,8 +124,13 @@ export default function AddFoodForm({ onSubmit, isLoading }) {
           />
         </div>
 
-        <button type="submit" disabled={isLoading} className="w-full py-2 px-4 bg-orange-500 text-white rounded">
-          <Plus size={20} /> {isLoading ? 'Adding...' : 'Add Food'}
+        <button 
+          type="submit" 
+          disabled={isLoading} 
+          className="w-full py-3 px-6 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-semibold rounded-lg shadow-md hover:shadow-lg hover:from-orange-600 hover:to-orange-700 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          <Plus size={22} className={isLoading ? 'animate-spin' : ''} />
+          {isLoading ? 'Adding...' : 'Add Food'}
         </button>
       </form>
     </div>
