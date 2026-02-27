@@ -7,10 +7,9 @@ const CATEGORIES = [
   { id: "freezer", label: "🧊 Freezer" },
 ];
 
-export default function AddFoodForm({ onSubmit, isLoading }) {
+export default function AddFoodForm({ onSubmit, isLoading, foods }) {
   const [showScanner, setShowScanner] = useState(false);
   const scannerRef = useRef(null);
-
   const [scanError, setScanError] = useState("");
 
   const [formData, setFormData] = useState({
@@ -21,6 +20,13 @@ export default function AddFoodForm({ onSubmit, isLoading }) {
     unit: "piece",
     notes: "",
   });
+
+  // ---------- Popup success ----------
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  // ---------- Calendar modal ----------
+  const [selectedDateFoods, setSelectedDateFoods] = useState([]);
+  const [showDayModal, setShowDayModal] = useState(false);
 
   // ---------------- INPUT ----------------
   const handleInputChange = (e) => {
@@ -38,6 +44,10 @@ export default function AddFoodForm({ onSubmit, isLoading }) {
 
     onSubmit(formData);
 
+    // Show success popup
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 2000);
+
     setFormData({
       name: "",
       category: "pantry",
@@ -51,39 +61,33 @@ export default function AddFoodForm({ onSubmit, isLoading }) {
   // ---------------- TODAY DATE ----------------
   const getTodayDate = () => new Date().toISOString().split("T")[0];
 
-  // determine pantry/fridge/freezer using product tags
+  // ---------------- CATEGORY GUESS ----------------
   const guessCategory = (product) => {
     if (!product) return "pantry";
-    const tags = (product.categories_tags || []).map(t => t.toLowerCase()).join(" ");
-    const desc = (
-      (product.generic_name || "") + " " +
-      (product.labels || "") + " " +
-      (product.brands || "")
-    ).toLowerCase();
+    const tags = (product.categories_tags || []).map((t) => t.toLowerCase()).join(" ");
+    const desc = ((product.generic_name || "") + " " + (product.labels || "") + " " + (product.brands || "")).toLowerCase();
     const text = tags + " " + desc;
     if (/frozen|ice|ice\-cream|gelato/.test(text)) return "freezer";
     if (/refrigerated|dairy|milk|cheese|yogurt|butter|cream/.test(text)) return "fridge";
     return "pantry";
   };
 
-  // calculate smart expiry date based on category
+  // ---------------- EXPIRY CALC ----------------
   const calculateExpiryDate = (category) => {
     const today = new Date();
     let daysToAdd = 7; // default pantry
-    if (category === "freezer") daysToAdd = 180; // 6 months
+    if (category === "freezer") daysToAdd = 180;
     else if (category === "fridge") daysToAdd = 5;
     else if (category === "pantry") daysToAdd = 30;
-    
+
     today.setDate(today.getDate() + daysToAdd);
     return today.toISOString().split("T")[0];
   };
 
-  // ---------------- FETCH PRODUCT NAME ----------------
+  // ---------------- FETCH PRODUCT ----------------
   const fetchFoodName = async (barcode) => {
     try {
-      const res = await fetch(
-        `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`
-      );
+      const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
       const data = await res.json();
 
       if (data.status === 1 && data.product?.product_name) {
@@ -103,13 +107,11 @@ export default function AddFoodForm({ onSubmit, isLoading }) {
     }
   };
 
-  // ---------------- START SCANNER ----------------
+  // ---------------- SCANNER ----------------
   const startScanner = async () => {
     setScanError("");
-
     try {
       const { Html5Qrcode } = await import("html5-qrcode");
-
       if (scannerRef.current) return;
 
       const scanner = new Html5Qrcode("scanner");
@@ -117,11 +119,7 @@ export default function AddFoodForm({ onSubmit, isLoading }) {
 
       await scanner.start(
         { facingMode: "environment" },
-        {
-          fps: 10,
-          qrbox: { width: 280, height: 280 },
-          aspectRatio: 1.7,
-        },
+        { fps: 10, qrbox: { width: 280, height: 280 }, aspectRatio: 1.7 },
         async (decodedText) => {
           await stopScanner();
           await fetchFoodName(decodedText);
@@ -134,45 +132,71 @@ export default function AddFoodForm({ onSubmit, isLoading }) {
     }
   };
 
-  // ---------------- STOP SCANNER SAFELY ----------------
   const stopScanner = async () => {
     if (!scannerRef.current) return;
-
     try {
       await scannerRef.current.stop();
       await scannerRef.current.clear();
     } catch (err) {
       console.log("Stop error:", err);
     }
-
     scannerRef.current = null;
     setShowScanner(false);
   };
 
-  // ---------------- EFFECT ----------------
   useEffect(() => {
     if (showScanner) startScanner();
-
-    return () => {
-      stopScanner();
-    };
+    return () => stopScanner();
   }, [showScanner]);
+
+  // ---------------- HANDLE DAY CLICK ----------------
+  const handleDayClick = (date) => {
+    const foodsForDay = foods.filter((f) => f.expiryDate === date);
+    setSelectedDateFoods(foodsForDay);
+    setShowDayModal(true);
+  };
 
   // ---------------- UI ----------------
   return (
-    <div className="w-full max-w-2xl mx-auto">
+    <div className="w-full max-w-2xl mx-auto relative">
+      {/* Success popup */}
+      {showSuccess && (
+        <div className="fixed top-4 right-4 z-50 px-4 py-2 bg-green-500 text-white rounded shadow-lg">
+          Food added successfully!
+        </div>
+      )}
+
+      {/* Calendar Day Modal */}
+      {showDayModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+          <div className="bg-white p-6 rounded-lg max-w-md w-full">
+            <h2 className="font-semibold mb-4">
+              Foods expiring on {selectedDateFoods[0]?.expiryDate}
+            </h2>
+            <ul className="space-y-2 max-h-64 overflow-y-auto">
+              {selectedDateFoods.map((f, idx) => (
+                <li key={idx} className="border-b pb-1">
+                  {f.name} - {f.quantity} {f.unit}
+                </li>
+              ))}
+            </ul>
+            <button
+              onClick={() => setShowDayModal(false)}
+              className="mt-4 px-4 py-2 bg-orange-500 text-white rounded hover:bg-orange-600"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
       {showScanner && (
         <div className="mb-6 p-4 bg-white rounded-xl shadow-lg border-2 border-blue-200">
           <p className="text-center font-semibold mb-3">
             Point camera at barcode or QR code
           </p>
-
           <div id="scanner" className="w-full rounded-lg overflow-hidden" />
-
-          {scanError && (
-            <p className="text-red-500 text-sm mt-2">{scanError}</p>
-          )}
-
+          {scanError && <p className="text-red-500 text-sm mt-2">{scanError}</p>}
           <button
             type="button"
             onClick={stopScanner}
@@ -187,7 +211,6 @@ export default function AddFoodForm({ onSubmit, isLoading }) {
         onSubmit={handleSubmit}
         className="space-y-6 bg-white p-6 rounded-xl shadow-lg border-2 border-orange-200"
       >
-        {/* show scan error above name */}
         {scanError && !showScanner && (
           <div className="p-3 bg-red-100 border border-red-300 text-red-700 rounded">
             {scanError}
@@ -203,7 +226,7 @@ export default function AddFoodForm({ onSubmit, isLoading }) {
             value={formData.name}
             onChange={(e) => {
               handleInputChange(e);
-              setScanError('');
+              setScanError("");
             }}
             className="w-full border px-3 py-2 rounded"
           />
@@ -217,13 +240,9 @@ export default function AddFoodForm({ onSubmit, isLoading }) {
               <button
                 key={cat.id}
                 type="button"
-                onClick={() =>
-                  setFormData((prev) => ({ ...prev, category: cat.id }))
-                }
+                onClick={() => setFormData((prev) => ({ ...prev, category: cat.id }))}
                 className={`px-4 py-2 rounded ${
-                  formData.category === cat.id
-                    ? "bg-orange-500 text-white"
-                    : "bg-gray-100"
+                  formData.category === cat.id ? "bg-orange-500 text-white" : "bg-gray-100"
                 }`}
               >
                 {cat.label}
@@ -245,7 +264,6 @@ export default function AddFoodForm({ onSubmit, isLoading }) {
               className="w-full border px-3 py-2 rounded"
             />
           </div>
-
           <div>
             <label>Unit</label>
             <select

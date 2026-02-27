@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@heroui/react": "^2.8.8",
+    "@react-google-maps/api": "^2.20.8",
     "firebase": "^12.8.0",
     "firebase-admin": "^13.6.1",
     "framer-motion": "^12.34.0",
