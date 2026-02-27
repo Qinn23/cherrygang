@@ -1,10 +1,20 @@
-import { useProfiles } from "@/components/ProfilesContext";
+import React, { useState, useEffect } from "react";
+import { useAuth } from "@/components/AuthContext";
 
 export function DinerSelector() {
-  const { profiles, selectedDinerIds, setSelectedDinerIds, isHydrated } =
-    useProfiles();
+  const { householdProfiles, loading } = useAuth(); // use full profiles from AuthContext
 
-  const allIds = profiles.map((p) => p.id);
+  // All profile IDs for selection
+  const allIds = householdProfiles.map((p) => p.id);
+
+  // Local state for selected diners
+  const [selectedDinerIds, setSelectedDinerIds] = useState(allIds);
+
+  // Reset selected diners when householdProfiles changes
+  useEffect(() => {
+    setSelectedDinerIds(allIds);
+  }, [householdProfiles.map(p => p.id).join(",")]); // updates when member IDs change
+
   const allSelected =
     selectedDinerIds.length > 0 &&
     allIds.every((id) => selectedDinerIds.includes(id));
@@ -19,7 +29,7 @@ export function DinerSelector() {
     setSelectedDinerIds(allIds);
   }
 
-  if (!isHydrated) return null;
+  if (loading) return null; // wait for auth & household
 
   return (
     <section className="rounded-2xl border border-amber-200/60 bg-white/80 p-5 shadow-sm ring-1 ring-inset ring-white/50 backdrop-blur">
@@ -44,11 +54,11 @@ export function DinerSelector() {
       </div>
 
       <div className="mt-4 flex flex-wrap gap-2">
-        {profiles.map((p) => {
+        {householdProfiles.map((p) => {
           const on = selectedDinerIds.includes(p.id);
           return (
             <button
-              key={p.id}
+              key={p.id} // ✅ unique key
               type="button"
               onClick={() => toggle(p.id)}
               className={
@@ -58,7 +68,7 @@ export function DinerSelector() {
               }
               aria-pressed={on}
             >
-              {p.name}
+              {p.name || "Unnamed"} {/* fallback if name missing */}
             </button>
           );
         })}
@@ -66,4 +76,3 @@ export function DinerSelector() {
     </section>
   );
 }
-
