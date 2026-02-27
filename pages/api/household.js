@@ -1,4 +1,6 @@
 const adminAuth = require("../../lib/firebaseAdmin"); // Admin SDK
+import { ensurePersonalHousehold } from "@/lib/households";
+
 import {
   createHousehold,
   generateInviteCode,
@@ -42,6 +44,8 @@ export default async function handler(req, res) {
     try {
       const decodedToken = await adminAuth.verifyIdToken(token);
       uid = decodedToken.uid;
+            const personalHouseholdId = await ensurePersonalHousehold(userId);
+
     } catch (err) {
       console.error("Token verification failed:", err);
       return res.status(401).json({ error: "Invalid token" });

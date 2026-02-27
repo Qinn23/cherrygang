@@ -5,7 +5,6 @@ import { useRouter } from "next/router";
 import { AlertsPanel } from "@/components/AlertsPanel";
 import { DashboardStatCard } from "@/components/DashboardStatCard";
 import { DinerSelector } from "@/components/DinerSelector";
-import { useProfiles } from "@/components/ProfilesContext";
 import { useAuth } from "@/components/AuthContext";
 import { logout } from "@/lib/auth";
 import { db } from "@/firebase";
@@ -73,7 +72,7 @@ function iconJar() {
 export default function Dashboard() {
   const router = useRouter();
   const { isAuthenticated, profile, user } = useAuth();
-  const { profiles, selectedDinerIds } = useProfiles();
+const { householdProfiles } = useAuth();
 
   const [ingredients, setIngredients] = useState([]);
   const [loading, setLoading] = useState(true);

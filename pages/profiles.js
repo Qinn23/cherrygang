@@ -1,6 +1,5 @@
 import React from "react";
-import { loadProfiles, saveProfile, deleteProfile, splitCsv, normalizeToken } from "./firestoreProfiles";
-import { useProfiles } from "@/components/ProfilesContext";
+import { loadProfiles, createProfile, updateProfile, deleteProfile, splitCsv, normalizeToken } from "@/lib/profiles";
 import { useAuth } from "@/components/AuthContext";
 import { getOrCreateHouseholdInviteCode } from "@/lib/households";
 import Link from "next/link";
@@ -88,27 +87,45 @@ export default function ProfilesPage() {
   const [joinError, setJoinError] = React.useState("");
 
   React.useEffect(() => {
-    async function fetchProfiles() {
-      const data = await loadProfiles(household?.id);
-      console.log("Loaded profiles for household:", household?.id, data);
+  async function fetchProfiles() {
+    if (!household?.id) return;
+
+    try {
+      const data = await loadProfiles(household.id); // load all profiles in this household
+      console.log("Loaded profiles for household:", household.id, data);
       setProfiles(data);
+    } catch (err) {
+      console.error("Error loading household profiles:", err);
+      setProfiles([]);
     }
-    if (household?.id) {
-      fetchProfiles();
-    }
-  }, [household?.id]);
+  }
+
+  fetchProfiles();
+}, [household]); // triggers whenever household changes
 
   const editing = profiles.find(p => p.id === editingId) ?? null;
 
   async function save(profile) {
-    await saveProfile(profile);
-    const next = profiles.some(p => p.id === profile.id)
-      ? profiles.map(p => (p.id === profile.id ? profile : p))
-      : [...profiles, profile];
-    setProfiles(next);
-    setEditingId(null);
-    setIsCreating(false);
+  if (profiles.some(p => p.id === profile.id)) {
+    await updateProfile(profile.id, profile);
+  } else {
+    const result = await createProfile(profile.email ?? null, {
+      ...profile,
+      householdId: household?.id ?? null,
+      uid: auth.currentUser?.uid ?? null,
+    });
+
+    if (result.success) {
+      profile.id = result.id;
+    }
   }
+
+  const updatedProfiles = await loadProfiles(household.id);
+  setProfiles(updatedProfiles);
+
+  setEditingId(null);
+  setIsCreating(false);
+}
 
   async function remove(id) {
     await deleteProfile(id);
@@ -151,32 +168,21 @@ export default function ProfilesPage() {
   setJoinError("");
 
   try {
-    // 1️⃣ Call API to accept the invite
-    const result = await joinHousehold(joinCode);
-    console.log("Join result:", result);
+    const result = await joinHousehold(joinCode); // call API
 
     if (result.success) {
+      // 1️⃣ Update current user's profile to new household
+      await linkProfileToHousehold(profile.id, result.householdId);
+
+      // 2️⃣ Update local profile state
+      setProfile({ ...profile, householdId: result.householdId });
+
+      // 3️⃣ Fetch all profiles in the joined household
+      const updatedProfiles = await loadProfiles(result.householdId);
+      setProfiles(updatedProfiles);
+
       setJoinCode("");
-      setJoinError("");
       alert("Joined household successfully!");
-
-      // 2️⃣ Fetch the updated household from API
-      const idToken = await auth.currentUser.getIdToken(true);
-      const res = await fetch("/api/household?action=getHousehold", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-        },
-        body: JSON.stringify({ householdId: result.householdId }),
-      });
-      const data = await res.json();
-
-      if (data.success && data.household) {
-        // 3️⃣ Reload all profiles from this updated household
-        const updatedProfiles = await loadProfiles(data.household.id);
-        setProfiles(updatedProfiles); // <-- instant UI update
-      }
     } else {
       setJoinError(result.error || "Failed to join household");
     }
