@@ -15,72 +15,117 @@ import {
   doc,
 } from "firebase/firestore";
 
+import { getAuth, onAuthStateChanged } from "firebase/auth";
+
 export default function AddFoodPage() {
   const [foods, setFoods] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("add");
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
-  // 🔥 Fetch foods from Firestore
+  const auth = getAuth();
+
+  // 🔐 Listen for authentication state
   useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setAuthLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [auth]);
+
+  // 🔥 Fetch foods for the logged-in user
+  useEffect(() => {
+    if (!user) return;
+
     const fetchFoods = async () => {
       try {
-        const snapshot = await getDocs(collection(db, "ingredients"));
-        const data = snapshot.docs.map((d) => ({
-          id: d.id,
-          ...d.data(),
+        const snapshot = await getDocs(
+          collection(db, "users", user.uid, "ingredients")
+        );
+
+        const data = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
         }));
+
         setFoods(data);
-      } catch (err) {
-        console.error("Error fetching foods:", err);
+      } catch (error) {
+        console.error("Error fetching foods:", error);
       }
     };
 
     fetchFoods();
-  }, []);
+  }, [user]);
 
-  // ✅ Add Food
+  // ➕ Add Food
   const handleAddFood = async (food) => {
+    if (!user) return;
+
     setIsLoading(true);
 
     try {
-      // Ensure expiryDate is string format YYYY-MM-DD
       const newFood = {
         name: food.name || "",
         qty: food.qty || "",
         category: food.category || "",
-        expiryDate: food.expiryDate || "", // keep as string
+        expiryDate: food.expiryDate || "",
         addedDate: new Date().toISOString(),
       };
 
       const docRef = await addDoc(
-        collection(db, "ingredients"),
+        collection(db, "users", user.uid, "ingredients"),
         newFood
       );
 
-      setFoods((prev) => [
-        { id: docRef.id, ...newFood },
-        ...prev,
-      ]);
-    } catch (err) {
-      console.error("Error adding food:", err);
+      setFoods((prev) => [{ id: docRef.id, ...newFood }, ...prev]);
+    } catch (error) {
+      console.error("Error adding food:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // ✅ Delete Food
+  // 🗑 Delete Food
   const handleDeleteFood = async (id) => {
+    if (!user) return;
+
     setIsLoading(true);
 
     try {
-      await deleteDoc(doc(db, "ingredients", id));
-      setFoods((prev) => prev.filter((f) => f.id !== id));
-    } catch (err) {
-      console.error("Error deleting food:", err);
+      await deleteDoc(
+        doc(db, "users", user.uid, "ingredients", id)
+      );
+
+      setFoods((prev) => prev.filter((food) => food.id !== id));
+    } catch (error) {
+      console.error("Error deleting food:", error);
     } finally {
       setIsLoading(false);
     }
   };
+
+  // 🔄 Show loading while checking authentication
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-gray-600 text-lg">Loading...</p>
+      </div>
+    );
+  }
+
+  // ❌ If not logged in
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-red-600 text-lg">
+          Please login to access your food inventory.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -122,6 +167,7 @@ export default function AddFoodPage() {
             >
               ➕ Add Food
             </button>
+
             <button
               onClick={() => setActiveTab("inventory")}
               className={`px-6 py-3 font-semibold transition-all duration-200 ${
@@ -136,7 +182,7 @@ export default function AddFoodPage() {
 
           {/* Tab Content */}
           {activeTab === "add" && (
-            <div className="fade-in">
+            <div>
               <AddFoodForm
                 onSubmit={handleAddFood}
                 isLoading={isLoading}
@@ -145,7 +191,7 @@ export default function AddFoodPage() {
           )}
 
           {activeTab === "inventory" && (
-            <div className="fade-in">
+            <div>
               <FoodInventory
                 foods={foods}
                 onDelete={handleDeleteFood}

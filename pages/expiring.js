@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
+
 import { db } from "@/firebase";
 import { collection, getDocs } from "firebase/firestore";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 
 const geistSans = Geist({ subsets: ["latin"] });
 const geistMono = Geist_Mono({ subsets: ["latin"] });
@@ -10,12 +12,30 @@ const geistMono = Geist_Mono({ subsets: ["latin"] });
 export default function ExpiringPage() {
   const [foods, setFoods] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
-  // 🔥 Fetch from same Firestore collection as add-food
+  const auth = getAuth();
+
+  // 🔐 Listen for logged-in user
   useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setAuthLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [auth]);
+
+  // 🔥 Fetch foods from user's subcollection
+  useEffect(() => {
+    if (!user) return;
+
     const fetchFoods = async () => {
       try {
-        const snapshot = await getDocs(collection(db, "ingredients"));
+        const snapshot = await getDocs(
+          collection(db, "users", user.uid, "ingredients")
+        );
 
         const data = snapshot.docs.map((doc) => ({
           id: doc.id,
@@ -31,7 +51,27 @@ export default function ExpiringPage() {
     };
 
     fetchFoods();
-  }, []);
+  }, [user]);
+
+  // 🔄 Loading while checking auth
+  if (authLoading) {
+    return (
+      <div className={`${geistSans.className} ${geistMono.className} min-h-screen flex items-center justify-center`}>
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  // ❌ If not logged in
+  if (!user) {
+    return (
+      <div className={`${geistSans.className} ${geistMono.className} min-h-screen flex items-center justify-center`}>
+        <p className="text-red-600 text-lg">
+          Please login to view expiring foods.
+        </p>
+      </div>
+    );
+  }
 
   // ✅ Safe date calculation (NO timezone issue)
   const today = new Date();

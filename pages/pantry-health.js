@@ -1,183 +1,197 @@
 import React, { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { Geist, Geist_Mono } from "next/font/google";
+
 import { db } from "@/firebase";
 import { collection, getDocs } from "firebase/firestore";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
-const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
+const geistSans = Geist({ subsets: ["latin"] });
+const geistMono = Geist_Mono({ subsets: ["latin"] });
 
 export default function PantryHealthPage() {
   const [foods, setFoods] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
+  const auth = getAuth();
+
+  // 🔐 Auth Listener (same pattern as Expiring page)
   useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setAuthLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, [auth]);
+
+  // 🔥 Fetch user's foods
+  useEffect(() => {
+    if (!user) return;
+
     const fetchFoods = async () => {
       try {
-        const snapshot = await getDocs(collection(db, "ingredients"));
-        const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        const snapshot = await getDocs(
+          collection(db, "users", user.uid, "ingredients")
+        );
+
+        const data = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+
         setFoods(data);
       } catch (err) {
         console.error("Error fetching foods:", err);
+      } finally {
+        setLoading(false);
       }
     };
+
     fetchFoods();
-  }, []);
+  }, [user]);
+
+  // 🔄 Auth loading screen
+  if (authLoading) {
+    return (
+      <div className={`${geistSans.className} ${geistMono.className} min-h-screen flex items-center justify-center`}>
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  // ❌ Not logged in
+  if (!user) {
+    return (
+      <div className={`${geistSans.className} ${geistMono.className} min-h-screen flex items-center justify-center`}>
+        <p className="text-red-600 text-lg">
+          Please login to view pantry health.
+        </p>
+      </div>
+    );
+  }
+
+  // 🔄 Data loading
+  if (loading) {
+    return (
+      <div className={`${geistSans.className} ${geistMono.className} min-h-screen flex items-center justify-center`}>
+        <p>Loading pantry data...</p>
+      </div>
+    );
+  }
+
+  // ==========================
+  // 🧠 Health Score Logic
+  // ==========================
 
   const expiringWindowDays = 7;
 
-  const startOfDay = (d) => {
-    const date = new Date(d);
-    date.setHours(0, 0, 0, 0);
-    return date;
-  };
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
-  const { score, freshCount, expiringSoonCount, expiredCount, breakdown } = useMemo(() => {
-    const today = startOfDay(new Date());
-    const soonLimit = new Date(today);
-    soonLimit.setDate(today.getDate() + expiringWindowDays);
+  const soonLimit = new Date(today);
+  soonLimit.setDate(today.getDate() + expiringWindowDays);
 
-    let fresh = 0;
-    let soon = 0;
-    let expired = 0;
+  let fresh = 0;
+  let soon = 0;
+  let expired = 0;
 
-    const breakdown = [];
+  foods.forEach((food) => {
+    if (!food.expiryDate) return;
 
-    foods.forEach(food => {
-      if (!food.expiryDate) return;
+    const [year, month, day] = food.expiryDate.split("-");
+    const expiry = new Date(Number(year), Number(month) - 1, Number(day));
+    expiry.setHours(0, 0, 0, 0);
 
-      const expiry = startOfDay(food.expiryDate);
-      let status = "";
+    if (expiry < today) {
+      expired++;
+    } else if (expiry <= soonLimit) {
+      soon++;
+    } else {
+      fresh++;
+    }
+  });
 
-      if (expiry < today) {
-        expired++;
-        status = "Expired";
-      } else if (expiry <= soonLimit) {
-        soon++;
-        status = "Expiring Soon";
-      } else {
-        fresh++;
-        status = "Fresh";
-      }
+  const totalItems = foods.length;
 
-      breakdown.push({
-        name: food.name || "Unnamed",
-        status,
-      });
-    });
-
-    const totalItems = foods.length;
-
-    // SAME LOGIC AS DASHBOARD
-    const score =
-      totalItems === 0
-        ? 100
-        : Math.round(((totalItems - expired) / totalItems) * 100);
-
-    return {
-      score,
-      freshCount: fresh,
-      expiringSoonCount: soon,
-      expiredCount: expired,
-      breakdown,
-    };
-  }, [foods]);
+  const score =
+    totalItems === 0
+      ? 100
+      : Math.round(((totalItems - expired) / totalItems) * 100);
 
   const scoreColor =
     score >= 80
-      ? "text-macaron-emerald-dark"
+      ? "text-green-600"
       : score >= 50
-      ? "text-macaron-peach-dark"
+      ? "text-orange-500"
       : "text-red-500";
+
+  // ==========================
+  // 🎨 UI
+  // ==========================
 
   return (
     <div className={`${geistSans.className} ${geistMono.className} min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50`}>
-      <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-        
+      <div className="mx-auto max-w-5xl px-6 py-8">
+
         {/* Header */}
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-macaron-lavender-dark">
-              Pantry health
+            <h1 className="text-3xl font-bold text-gray-900">
+              Pantry Health
             </h1>
-            <p className="mt-1 text-xs text-macaron-lavender-dark">
-              A quick snapshot of how fresh your pantry is right now.
+            <p className="text-gray-600">
+              Snapshot of your pantry freshness
             </p>
           </div>
           <Link
             href="/"
-            className="text-sm text-macaron-pink-dark hover:underline"
+            className="rounded-full px-4 py-2 text-sm font-semibold hover:bg-gray-200"
           >
-            Back
+            ← Dashboard
           </Link>
         </div>
 
         {/* Score Card */}
-        <div className="rounded-2xl border-2 border-macaron-mint bg-white/90 p-6 shadow-macaron-md text-center">
-          <p className="text-xs text-macaron-mint-dark">
-            Pantry health score
-          </p>
-          <p className={`mt-3 text-5xl font-bold ${scoreColor}`}>
+        <div className="rounded-xl bg-white p-6 shadow text-center mb-8">
+          <p className="text-gray-500 text-sm">Pantry Health Score</p>
+          <p className={`text-5xl font-bold ${scoreColor}`}>
             {score}%
           </p>
-          <p className="mt-2 text-xs text-macaron-lavender-dark">
+          <p className="text-gray-500 text-sm mt-2">
             Based on how many items are not expired
           </p>
         </div>
 
-        {/* Breakdown Cards */}
-        <div className="mt-6 grid gap-4 sm:grid-cols-3">
-          
-          <div className="rounded-2xl border-2 border-macaron-emerald bg-white/90 p-4 shadow-macaron-md">
-            <p className="text-xs text-macaron-emerald-dark">Fresh</p>
-            <p className="mt-1 text-2xl font-semibold text-macaron-emerald-dark">
-              {freshCount}
-            </p>
-            <p className="text-xs text-macaron-lavender-dark">
-              Items in good condition
+        {/* Breakdown */}
+        <div className="grid gap-4 md:grid-cols-3">
+          <div className="rounded-xl bg-white p-5 shadow">
+            <p className="text-gray-500 text-sm">Fresh</p>
+            <p className="text-2xl font-bold text-green-600">
+              {fresh}
             </p>
           </div>
 
-          <div className="rounded-2xl border-2 border-macaron-peach bg-white/90 p-4 shadow-macaron-md">
-            <p className="text-xs text-macaron-peach-dark">
-              Expiring soon
+          <div className="rounded-xl bg-white p-5 shadow">
+            <p className="text-gray-500 text-sm">
+              Expiring Soon (7 days)
             </p>
-            <p className="mt-1 text-2xl font-semibold text-macaron-peach-dark">
-              {expiringSoonCount}
-            </p>
-            <p className="text-xs text-macaron-lavender-dark">
-              Use within {expiringWindowDays} days
+            <p className="text-2xl font-bold text-orange-500">
+              {soon}
             </p>
           </div>
 
-          <div className="rounded-2xl border-2 border-red-300 bg-white/90 p-4 shadow-macaron-md">
-            <p className="text-xs text-red-500">Expired</p>
-            <p className="mt-1 text-2xl font-semibold text-red-500">
-              {expiredCount}
-            </p>
-            <p className="text-xs text-macaron-lavender-dark">
-              Should be reviewed
+          <div className="rounded-xl bg-white p-5 shadow">
+            <p className="text-gray-500 text-sm">Expired</p>
+            <p className="text-2xl font-bold text-red-600">
+              {expired}
             </p>
           </div>
         </div>
 
-        {/* List Breakdown */}
-        <div className="mt-8 rounded-2xl border-2 border-macaron-lavender bg-white/90 p-5 shadow-macaron-md">
-          <h2 className="text-sm font-semibold text-macaron-lavender-dark">
-            Status breakdown
-          </h2>
-          <ul className="mt-2 max-h-48 overflow-y-auto divide-y divide-gray-200 text-xs">
-            {breakdown.map((item, idx) => (
-              <li key={idx} className="py-1 flex justify-between">
-                <span>{item.name}</span>
-                <span className="font-semibold">
-                  {item.status}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-      </main>
+      </div>
     </div>
   );
 }
