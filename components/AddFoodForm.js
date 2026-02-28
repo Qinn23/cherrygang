@@ -12,6 +12,8 @@ export default function AddFoodForm({ onSubmit, isLoading, foods }) {
   const scannerRef = useRef(null);
   const [scanError, setScanError] = useState("");
 
+  const [formError, setFormError] = useState(""); // ✅ NEW
+
   const [formData, setFormData] = useState({
     name: "",
     category: "pantry",
@@ -21,10 +23,7 @@ export default function AddFoodForm({ onSubmit, isLoading, foods }) {
     notes: "",
   });
 
-  // ---------- Popup success ----------
   const [showSuccess, setShowSuccess] = useState(false);
-
-  // ---------- Calendar modal ----------
   const [selectedDateFoods, setSelectedDateFoods] = useState([]);
   const [showDayModal, setShowDayModal] = useState(false);
 
@@ -40,11 +39,21 @@ export default function AddFoodForm({ onSubmit, isLoading, foods }) {
   // ---------------- SUBMIT ----------------
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!formData.name.trim()) return alert("Please enter a food name");
+
+    if (!formData.name.trim()) {
+      setFormError("Please enter a food name.");
+      return;
+    }
+
+    if (!formData.expiryDate) {
+      setFormError("Please select an expiry date.");
+      return;
+    }
+
+    setFormError("");
 
     onSubmit(formData);
 
-    // Show success popup
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 2000);
 
@@ -65,17 +74,27 @@ export default function AddFoodForm({ onSubmit, isLoading, foods }) {
   const guessCategory = (product) => {
     if (!product) return "pantry";
     const tags = (product.categories_tags || []).map((t) => t.toLowerCase()).join(" ");
-    const desc = ((product.generic_name || "") + " " + (product.labels || "") + " " + (product.brands || "")).toLowerCase();
+    const desc =
+      ((product.generic_name || "") +
+        " " +
+        (product.labels || "") +
+        " " +
+        (product.brands || "")).toLowerCase();
+
     const text = tags + " " + desc;
+
     if (/frozen|ice|ice\-cream|gelato/.test(text)) return "freezer";
-    if (/refrigerated|dairy|milk|cheese|yogurt|butter|cream/.test(text)) return "fridge";
+    if (/refrigerated|dairy|milk|cheese|yogurt|butter|cream/.test(text))
+      return "fridge";
+
     return "pantry";
   };
 
   // ---------------- EXPIRY CALC ----------------
   const calculateExpiryDate = (category) => {
     const today = new Date();
-    let daysToAdd = 7; // default pantry
+    let daysToAdd = 7;
+
     if (category === "freezer") daysToAdd = 180;
     else if (category === "fridge") daysToAdd = 5;
     else if (category === "pantry") daysToAdd = 30;
@@ -87,7 +106,9 @@ export default function AddFoodForm({ onSubmit, isLoading, foods }) {
   // ---------------- FETCH PRODUCT ----------------
   const fetchFoodName = async (barcode) => {
     try {
-      const res = await fetch(`https://world.openfoodfacts.org/api/v0/product/${barcode}.json`);
+      const res = await fetch(
+        `https://world.openfoodfacts.org/api/v0/product/${barcode}.json`
+      );
       const data = await res.json();
 
       if (data.status === 1 && data.product?.product_name) {
@@ -99,6 +120,7 @@ export default function AddFoodForm({ onSubmit, isLoading, foods }) {
           expiryDate: calculateExpiryDate(category),
         }));
         setScanError("");
+        setFormError("");
       } else {
         setScanError("Item not found. Enter name manually.");
       }
@@ -137,9 +159,7 @@ export default function AddFoodForm({ onSubmit, isLoading, foods }) {
     try {
       await scannerRef.current.stop();
       await scannerRef.current.clear();
-    } catch (err) {
-      console.log("Stop error:", err);
-    }
+    } catch {}
     scannerRef.current = null;
     setShowScanner(false);
   };
@@ -156,17 +176,14 @@ export default function AddFoodForm({ onSubmit, isLoading, foods }) {
     setShowDayModal(true);
   };
 
-  // ---------------- UI ----------------
   return (
     <div className="w-full max-w-2xl mx-auto relative">
-      {/* Success popup */}
       {showSuccess && (
         <div className="fixed top-4 right-4 z-50 px-4 py-2 bg-green-500 text-white rounded shadow-lg">
           Food added successfully!
         </div>
       )}
 
-      {/* Calendar Day Modal */}
       {showDayModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white p-6 rounded-lg max-w-md w-full">
@@ -190,30 +207,13 @@ export default function AddFoodForm({ onSubmit, isLoading, foods }) {
         </div>
       )}
 
-      {showScanner && (
-        <div className="mb-6 p-4 bg-white rounded-xl shadow-lg border-2 border-blue-200">
-          <p className="text-center font-semibold mb-3">
-            Point camera at barcode or QR code
-          </p>
-          <div id="scanner" className="w-full rounded-lg overflow-hidden" />
-          {scanError && <p className="text-red-500 text-sm mt-2">{scanError}</p>}
-          <button
-            type="button"
-            onClick={stopScanner}
-            className="w-full mt-3 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg"
-          >
-            ✕ Cancel Scan
-          </button>
-        </div>
-      )}
-
       <form
         onSubmit={handleSubmit}
         className="space-y-6 bg-white p-6 rounded-xl shadow-lg border-2 border-orange-200"
       >
-        {scanError && !showScanner && (
+        {formError && (
           <div className="p-3 bg-red-100 border border-red-300 text-red-700 rounded">
-            {scanError}
+            {formError}
           </div>
         )}
 
@@ -226,7 +226,7 @@ export default function AddFoodForm({ onSubmit, isLoading, foods }) {
             value={formData.name}
             onChange={(e) => {
               handleInputChange(e);
-              setScanError("");
+              setFormError("");
             }}
             className="w-full border px-3 py-2 rounded"
           />
@@ -240,9 +240,13 @@ export default function AddFoodForm({ onSubmit, isLoading, foods }) {
               <button
                 key={cat.id}
                 type="button"
-                onClick={() => setFormData((prev) => ({ ...prev, category: cat.id }))}
+                onClick={() =>
+                  setFormData((prev) => ({ ...prev, category: cat.id }))
+                }
                 className={`px-4 py-2 rounded ${
-                  formData.category === cat.id ? "bg-orange-500 text-white" : "bg-gray-100"
+                  formData.category === cat.id
+                    ? "bg-orange-500 text-white"
+                    : "bg-gray-100"
                 }`}
               >
                 {cat.label}
@@ -251,7 +255,7 @@ export default function AddFoodForm({ onSubmit, isLoading, foods }) {
           </div>
         </div>
 
-        {/* QUANTITY */}
+        {/* QUANTITY + UNIT */}
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label>Quantity</label>
@@ -285,14 +289,19 @@ export default function AddFoodForm({ onSubmit, isLoading, foods }) {
 
         {/* EXPIRY */}
         <div>
-          <label>Expiry Date</label>
+          <label>Expiry Date *</label>
           <input
             type="date"
             name="expiryDate"
             min={getTodayDate()}
             value={formData.expiryDate}
-            onChange={handleInputChange}
-            className="w-full border px-3 py-2 rounded"
+            onChange={(e) => {
+              handleInputChange(e);
+              setFormError("");
+            }}
+            className={`w-full border px-3 py-2 rounded ${
+              !formData.expiryDate && formError ? "border-red-500" : ""
+            }`}
           />
         </div>
 
@@ -307,15 +316,6 @@ export default function AddFoodForm({ onSubmit, isLoading, foods }) {
             className="w-full border px-3 py-2 rounded"
           />
         </div>
-
-        {/* SCAN BUTTON */}
-        <button
-          type="button"
-          onClick={() => setShowScanner(true)}
-          className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-lg"
-        >
-          📷 Scan Code
-        </button>
 
         {/* SUBMIT */}
         <button
