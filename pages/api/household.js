@@ -1,33 +1,25 @@
-const adminAuth = require("../../lib/firebaseAdmin"); // Admin SDK
-import { ensurePersonalHousehold } from "@/lib/households";
+// pages/api/household.js
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { db } from "@/firebase";
+import adminAuth from "../../lib/firebaseAdmin"; // Firebase Admin SDK
+import { removeUserFromHousehold } from "@/lib/households";
 
 import {
+  ensurePersonalHousehold,
   createHousehold,
   generateInviteCode,
   acceptInviteCode,
   getHousehold,
   getHouseholdMembers,
   getHouseholdInvites,
-} from "../../lib/households";
+} from "@/lib/households";
 
-/**
- * API route for household management
- *
- * POST /api/household
- *   ?action=create -> Create new household (requires: name)
- *   ?action=generateCode -> Generate invite code (requires: householdId)
- *   ?action=acceptCode -> Accept invite code (requires: code)
- *   ?action=getHousehold -> Get household details (requires: householdId)
- *   ?action=getMembers -> Get household members (requires: householdId)
- *   ?action=getInvites -> Get household invites (requires: householdId)
- */
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
-    console.log("req.body:", req.body);
     const { action } = req.query;
 
     // ----------------------------
@@ -44,11 +36,14 @@ export default async function handler(req, res) {
     try {
       const decodedToken = await adminAuth.verifyIdToken(token);
       uid = decodedToken.uid;
-            const personalHouseholdId = await ensurePersonalHousehold(userId);
 
+      // Optional: ensure user has a personal household
+      if (action === "create" || action === "acceptCode") {
+        await ensurePersonalHousehold(uid);
+      }
     } catch (err) {
       console.error("Token verification failed:", err);
-      return res.status(401).json({ error: "Invalid token" });
+      return res.status(401).json({ error: "Your login session has expired. Please log in again." });
     }
 
     // ----------------------------
@@ -67,15 +62,14 @@ export default async function handler(req, res) {
         return await handleGetMembers(req, res);
       case "getInvites":
         return await handleGetInvites(req, res, uid);
+        case "removeMember":
+        return await handleRemoveMember(req, res, uid);
       default:
         return res.status(400).json({ error: "Invalid action" });
     }
   } catch (error) {
     console.error("Household API error:", error);
-    return res.status(500).json({ 
-      error: error.message || "Internal server error",
-      success: false 
-    });
+return res.status(500).json({ error: "An unexpected error occurred. Please try again.", success: false });
   }
 }
 
@@ -104,12 +98,37 @@ async function handleGenerateCode(req, res, uid) {
   return res.status(result.success ? 200 : 500).json(result);
 }
 
+async function handleRemoveMember(req, res, loggedInUid) {
+  const { memberUid, householdId } = req.body;
+  if (!memberUid || !householdId) return res.status(400).json({ error: "Missing parameters" });
+
+  const household = await getHousehold(householdId);
+  if (!household || !household.members.some(m => m.uid === loggedInUid)) {
+    return res.status(403).json({ error: "Not authorized" });
+  }
+
+  const result = await removeUserFromHousehold(memberUid, householdId);
+  return res.status(result.success ? 200 : 500).json(result);
+}
+
 async function handleAcceptCode(req, res, uid) {
   const { code } = req.body;
   if (!code) return res.status(400).json({ error: "Missing code" });
 
   const result = await acceptInviteCode(code, uid);
-  return res.status(result.success ? 200 : 400).json(result);
+
+  if (result.success) {
+    // Fetch the new member profile to return immediately
+    const profilesCol = collection(db, "profiles");
+    const q = query(profilesCol, where("uid", "==", uid));
+    const snap = await getDocs(q);
+    let newMember = null;
+    if (!snap.empty) newMember = { id: snap.docs[0].id, ...snap.docs[0].data() };
+
+    return res.status(200).json({ ...result, newMember });
+  }
+
+  return res.status(400).json(result);
 }
 
 async function handleGetHousehold(req, res) {
