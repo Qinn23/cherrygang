@@ -1,3 +1,68 @@
+# Smart Pantry System
+
+AI-powered smart pantry management system built to help households reduce food waste through shared inventory tracking and intelligent recommendations.
+
+# Smart Pantry Web Application
+
+This project is a web-based smart pantry system.
+It allows multiple users in a household to manage shared food inventory, generate meals using available ingredients, and receive AI-powered assistance for food and plant care decisions.
+
+The system focuses on promoting responsible consumption and improving everyday food management using modern cloud technologies.
+
+# ✨ Features
+
+- Shared household pantry management
+- Real-time ingredient tracking
+- AI meal generator based on available ingredients
+- Built-in AI assistant
+- Fertilizer and plant-care recommendations
+- Multi-user collaboration system
+
+# 🛠️ Technologies Used
+
+- JavaScript (React / Next.js)
+- Firebase Authentication
+- Cloud Firestore (Firebase Database)
+- Google Gemini API
+
+# ⚙️ Technical Architecture
+
+The application follows a client–cloud architecture:
+
+- Frontend web application handles user interaction and UI.
+- Firebase manages authentication and real-time database storage.
+- Gemini AI processes prompts to generate meals, fertilizer tips, and assistant responses.
+
+# 🚧 Challenges Faced
+
+Firebase was a new technology during development, which created challenges in understanding NoSQL database structure and real-time synchronization.
+
+Key challenges included:
+- Designing Firestore data models
+- Managing shared household data
+- Debugging data synchronization issues
+
+Through testing, documentation study, and iterative debugging, a stable real-time backend system was successfully implemented.
+
+# 🔮 Future Roadmap
+
+- Mobile application version
+- AI personalization based on user habits
+- Expiry reminders and smart notifications
+- Grocery service integration
+- Food usage analytics dashboard
+
+# About This Project
+
+This project demonstrates practical experience in:
+
+- Full-stack web development
+- Firebase backend integration
+- Google AI (Gemini) implementation
+- Real-time collaborative system design
+
+---
+  
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
 
 ## Getting Started
