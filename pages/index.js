@@ -1,78 +1,180 @@
-import Image from "next/image";
-import { Geist, Geist_Mono } from "next/font/google";
+// pages/index.js
+import React from "react";
+import Link from "next/link";
+import { DM_Sans } from "next/font/google";
+import { useAuth } from "@/components/AuthContext";
+import { useRouter } from "next/router";
+import { motion } from "framer-motion";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const dmSans = DM_Sans({
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+/* =========================
+   Animation Variants
+========================= */
 
-export default function Home() {
+const heroFadeUp = {
+  hidden: { opacity: 0, y: 30 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.6, ease: "easeOut" },
+  },
+};
+
+const containerVariants = {
+  hidden: {},
+  show: {
+    transition: {
+      staggerChildren: 0.12,
+    },
+  },
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 30 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: "easeOut" },
+  },
+};
+
+export default function WelcomePage() {
+  const { isAuthenticated } = useAuth();
+  const router = useRouter();
+
+  // Auto-redirect logged-in users
+  React.useEffect(() => {
+    if (isAuthenticated) {
+      router.replace("/dashboard");
+    }
+  }, [isAuthenticated, router]);
+
   return (
     <div
-      className={`${geistSans.className} ${geistMono.className} flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black`}
+      className={`${dmSans.className} min-h-screen bg-gradient-to-br from-emerald-50 via-white to-sky-50 text-slate-900`}
     >
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the index.js file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+      {/* Header */}
+      <header className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
+        <div className="flex items-center gap-2">
+          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-600 text-sm font-bold text-white">
+            SP
+          </div>
+          <span className="text-lg font-semibold">Smart Pantry</span>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+      </header>
+
+      {/* Hero */}
+      <main className="mx-auto max-w-6xl px-6 py-20">
+        <motion.section
+          className="text-center"
+          variants={heroFadeUp}
+          initial="hidden"
+          animate="show"
+        >
+          <motion.h1
+            className="text-4xl font-bold tracking-tight sm:text-5xl"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs/pages/getting-started?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            Reduce food waste.
+            <br />
+            Eat smarter.
+          </motion.h1>
+
+          <motion.p
+            className="mt-4 text-lg text-slate-600"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
           >
-            Documentation
-          </a>
-        </div>
+            Smart Pantry helps you track food, plan meals, and turn leftovers
+            into smarter choices for your household.
+          </motion.p>
+
+          <motion.div
+            className="mt-8 flex flex-col items-center gap-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35 }}
+          >
+            <div className="flex gap-4">
+              <Link
+                href="/login?mode=signup"
+                className="rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700"
+              >
+                Get started
+              </Link>
+
+              <Link
+                href="/login"
+                className="rounded-xl border border-slate-300 px-6 py-3 text-sm font-semibold transition hover:bg-slate-100"
+              >
+                Sign in
+              </Link>
+            </div>
+
+            <p className="text-xs text-slate-500">
+              New here? Start reducing food waste today — it’s free.
+            </p>
+          </motion.div>
+        </motion.section>
+
+        {/* Features */}
+        <motion.section
+          className="mt-20 grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: "-100px" }}
+        >
+          <Feature
+            title="Track your pantry"
+            desc="Add food items, monitor expiry dates, and know what needs to be used first."
+          />
+          <Feature
+            title="AI-powered recipes"
+            desc="Get smart recipe and meal suggestions based on what you already have."
+          />
+          <Feature
+            title="Family profiles"
+            desc="Automatically adjust meals for allergies, preferences, and dietary needs."
+          />
+          <Feature
+            title="Smart meal generator"
+            desc="Let AI plan meals that reduce waste and save time."
+          />
+          <Feature
+            title="Fertilizer & compost tips"
+            desc="Turn expired food into eco-friendly fertilizer with AI guidance."
+          />
+          <Feature
+            title="Community life hacks"
+            desc="Share and discover food-saving tips from other households."
+          />
+        </motion.section>
       </main>
+
+      {/* Footer */}
+      <footer className="border-t bg-white/60 py-6 text-center text-xs text-slate-500">
+        Smart Pantry · Reducing food waste with smarter decisions
+      </footer>
     </div>
+  );
+}
+
+function Feature({ title, desc }) {
+  return (
+    <motion.div
+      variants={cardVariants}
+      className="rounded-2xl border bg-white/70 p-6 shadow-sm backdrop-blur-md transition hover:shadow-md"
+    >
+      <h3 className="font-semibold text-slate-900">{title}</h3>
+      <p className="mt-2 text-sm text-slate-600">{desc}</p>
+    </motion.div>
   );
 }
