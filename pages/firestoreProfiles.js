@@ -1,4 +1,13 @@
-// legacy helper file; re-export from centralized module to avoid duplicate logic
+export async function getServerSideProps() {
+	return {
+		redirect: {
+			destination: "/profiles",
+			permanent: false,
+		},
+	};
+}
 
-export * from "@/lib/profiles";
+export default function FirestoreProfilesRedirect() {
+	return null;
+}
 
